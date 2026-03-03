@@ -1,16 +1,16 @@
-// enemies.js — Enemy with sprite sheet walk animation
+// enemies.js
 
 // ── Floating damage numbers ───────────────────────
 var _enemyDmgNumbers = [];
 
 function _spawnEnemyDmgNumber(x, y, amount, isPoison) {
   _enemyDmgNumbers.push({
-    x      : x + (Math.random() - 0.5) * 20,
-    y      : y,
+    x      : x + (Math.random() - 0.5) * 30,
+    y      : y - 80,
     amount : amount,
     timer  : 0,
-    life   : 1.0,
-    vy     : -120 - Math.random() * 40,
+    life   : 1.1,
+    vy     : -60 - Math.random() * 30,
     poison : !!isPoison,
   });
 }
@@ -25,30 +25,32 @@ function updateEnemyDmgNumbers(dt) {
   }
 }
 
-function drawEnemyDmgNumbers(ctx) {
+function drawEnemyDmgNumbers(ctx, scale) {
+  var s = scale || 1;
   for (var i = 0; i < _enemyDmgNumbers.length; i++) {
     var d     = _enemyDmgNumbers[i];
     var alpha = 1 - (d.timer / d.life);
-    var size  = Math.round(22 * (1 + (1 - alpha) * 0.3));
+    var size  = Math.round(7 + (1 - alpha) * 4);
+    // Convert world → screen coords
+    var sx = d.x * s;
+    var sy = d.y * s;
     ctx.save();
     ctx.globalAlpha  = alpha;
-    ctx.font         = "bold " + size + "px serif";
+    ctx.font         = "bold " + size + "px Arial";
     ctx.textAlign    = "center";
     ctx.textBaseline = "middle";
     if (d.poison) {
-      // Green poison damage numbers
-      ctx.strokeStyle = "#c90707";
       ctx.lineWidth   = 3;
-      ctx.strokeText("-" + d.amount, d.x, d.y);
-      ctx.fillStyle   = "#920c0c";
-      ctx.fillText("-" + d.amount, d.x, d.y);
-    } else {
-      // Red damage numbers
       ctx.strokeStyle = "#000000";
-      ctx.lineWidth   = 3;
-      ctx.strokeText("-" + d.amount, d.x, d.y);
+      ctx.strokeText("-" + d.amount, sx, sy);
       ctx.fillStyle   = "#ff2222";
-      ctx.fillText("-" + d.amount, d.x, d.y);
+      ctx.fillText("-" + d.amount, sx, sy);
+    } else {
+      ctx.lineWidth   = 4;
+      ctx.strokeStyle = "#000000";
+      ctx.strokeText("-" + d.amount, sx, sy);
+      ctx.fillStyle   = "#ff2222";
+      ctx.fillText("-" + d.amount, sx, sy);
     }
     ctx.restore();
   }
@@ -247,6 +249,15 @@ class Enemy {
         }
       }
       return;
+    }
+
+    // Electric slow (lightning ability)
+    if (this._electricTimer > 0) {
+      this._electricTimer -= dt;
+      if (this._electricTimer <= 0) {
+        this._electricTimer  = 0;
+        this.poisonSlowMult  = 1.0;
+      }
     }
 
     // Poison — tick damage + slow

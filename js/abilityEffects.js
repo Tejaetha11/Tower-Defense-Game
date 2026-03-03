@@ -2,31 +2,85 @@
 
 var EFFECT_DEFS = {
   explosion: {
-    image    : "img/special abilities/explosion ability.png",
-    frameW   : 256,
-    frameH   : 256,
-    cols     : 5,
-    rows     : 2,
-    fps      : 14,
-    drawW    : 840,
-    drawH    : 840,
-    radius   : 500,
-    damage   : 110,
-    knockback: 180,
+    image      : "img/special abilities/explosion ability.png",
+    frameW     : 256,
+    frameH     : 256,
+    cols       : 5,
+    rows       : 2,
+    fps        : 14,
+    drawW      : 840,
+    drawH      : 840,
+    drawOffsetX: -10,    
+    drawOffsetY: -25,
+    radius     : 500,
+    damage     : 110,
+    knockback  : 180,
   },
   poison: {
-    image    : "img/special abilities/poison gas ability.png",
-    frameW   : 256,
-    frameH   : 256,
-    cols     : 5,
-    rows     : 2,
-    totalFrames: 10,   // only 10 frames (last row has 2)
-    fps      : 19,
-    drawW    : 750,
-    drawH    : 750,
-    radius   : 350,
-    slowMult : 0.3,
-    duration : 10,     // ← 10 seconds
+    image      : "img/special abilities/poison gas ability.png",
+    frameW     : 256,
+    frameH     : 256,
+    cols       : 4,
+    rows       : 3,
+    totalFrames: 10,
+    fps        : 13,
+    drawW      : 750,
+    drawH      : 750,
+    drawOffsetX: 0,
+    drawOffsetY: 0,
+    radius     : 400,
+    slowMult   : 0.4,
+    duration   : 10,
+  },
+  lightning: {
+    // Sheet 1 — main bolt
+    image      : "img/special abilities/lightning ability1.png",
+    frameW     : 64,
+    frameH     : 193,
+    cols       : 5,
+    rows       : 3,
+    totalFrames: 15,
+    fps        : 12,
+    drawW      : 400,
+    drawH      : 2600,
+    drawOffsetX: 0,
+    drawOffsetY: 40,     
+    impactFrame: 3,
+    // Sheet 2 — ground impact
+    impactImage : "img/special abilities/lightning ability 2.png",
+    impactFrameW: 64,
+    impactFrameH: 64,
+    impactCols  : 2,
+    impactRows  : 2,
+    impactFps   : 7,
+    impactDrawW : 500,
+    impactDrawH : 500,
+    impactTotal : 4, 
+    // Damage
+    radius     : 200,
+    damage     : 100,
+    slowMult   : 0.5,
+    slowDur    : 4,
+  },
+  nuclear: {
+    image      : "img/special abilities/nuclear ability.png",
+    frameW     : 256,
+    frameH     : 256,
+    cols       : 5,
+    rows       : 2,
+    totalFrames: 10,
+    fps        : 13,
+    drawW      : 1000,
+    drawH      : 1000,
+    drawOffsetX: 0,
+    drawOffsetY: -115,
+    radius     : 600,
+    innerRadius: 250,
+    damage     : 140,
+    shakeDur   : 0.5,
+    shakeMag   : 18,
+    radZoneLife: 12,
+    radDamage  : 9,
   },
 };
 
@@ -41,7 +95,6 @@ function _spawnScorch(wx, wy, radius) {
   var octx = oc.getContext("2d");
   var cx   = sz / 2, cy = sz / 2;
 
-  // Irregular outer burn
   var angles = [0, 0.4, 0.9, 1.5, 2.1, 2.7];
   var scales = [1.0, 0.92, 0.88, 0.95, 0.85, 0.9];
   for (var a = 0; a < angles.length; a++) {
@@ -66,7 +119,6 @@ function _spawnScorch(wx, wy, radius) {
     octx.fill();
   }
 
-  // Center char
   var cg = octx.createRadialGradient(cx - r*0.06, cy - r*0.04, 0, cx, cy, r*0.52);
   cg.addColorStop(0,    "rgba(8,3,0,0.9)");
   cg.addColorStop(0.35, "rgba(22,8,0,0.78)");
@@ -77,7 +129,6 @@ function _spawnScorch(wx, wy, radius) {
   octx.fillStyle = cg;
   octx.fill();
 
-  // Cracks
   octx.globalAlpha = 0.38;
   octx.strokeStyle = "#1a0800";
   var crackAngles = [0.1, 0.95, 1.8, 2.65, 3.5, 4.35, 5.15];
@@ -120,6 +171,200 @@ function _updateScorches(dt) {
     _scorchMarks[i].timer += dt;
     if (_scorchMarks[i].timer >= _scorchMarks[i].life)
       _scorchMarks.splice(i, 1);
+  }
+}
+
+// ── Radiation zones ───────────────────────────────
+var _radZones = [];
+
+function _spawnRadZone(wx, wy, radius, life, damagePerSec) {
+  var sz  = Math.ceil(radius * 2.4);
+  var oc  = document.createElement("canvas");
+  oc.width = sz; oc.height = sz;
+  var octx = oc.getContext("2d");
+  var cx   = sz / 2, cy = sz / 2;
+  var r    = radius;
+
+  // Single red glow — bright edge, transparent center
+  var og = octx.createRadialGradient(cx, cy, r * 0.45, cx, cy, r);
+  og.addColorStop(0,    "rgba(255,30,0,0)");
+  og.addColorStop(0.6,  "rgba(255,30,0,0.25)");
+  og.addColorStop(0.88, "rgba(220,20,0,0.55)");
+  og.addColorStop(1,    "rgba(0,0,0,0)");
+  octx.beginPath();
+  octx.ellipse(cx, cy, r, r * 0.5, 0, 0, Math.PI * 2);
+  octx.fillStyle = og;
+  octx.fill();
+
+  // Single solid rim
+  octx.beginPath();
+  octx.ellipse(cx, cy, r * 0.9, r * 0.45, 0, 0, Math.PI * 2);
+  octx.strokeStyle = "rgba(255,50,10,0.75)";
+  octx.lineWidth   = 3;
+  octx.stroke();
+
+  _radZones.push({
+    wx          : wx,
+    wy          : wy,
+    radius      : radius,
+    sz          : sz,
+    baked       : oc,
+    timer       : 0,
+    life        : life,
+    damagePerSec: damagePerSec,
+    tickTimer   : 0,
+    pulseT      : 0,
+    particles   : [],
+    partTimer   : 0,
+  });
+}
+
+function _updateRadZones(dt, enemies) {
+  for (var i = _radZones.length - 1; i >= 0; i--) {
+    var z = _radZones[i];
+    z.timer     += dt;
+    z.pulseT    += dt;
+    z.tickTimer += dt;
+    z.partTimer += dt;
+
+    // Spawn rising particle every ~0.07s
+    if (z.partTimer >= 0.07) {
+      z.partTimer = 0;
+      var angle = Math.random() * Math.PI * 2;
+      var pdist = Math.random() * z.radius * 0.85;
+      z.particles.push({
+        x   : z.wx + Math.cos(angle) * pdist,
+        y   : z.wy + Math.sin(angle) * pdist * 0.5,
+        vy  : -(20 + Math.random() * 25),
+        vx  : (Math.random() - 0.5) * 8,
+        r   : 3 + Math.random() * 4,
+        age : 0,
+        life: 0.7 + Math.random() * 0.7,
+      });
+    }
+
+    // Update particles
+    for (var p = z.particles.length - 1; p >= 0; p--) {
+      var pt = z.particles[p];
+      pt.age += dt;
+      pt.x   += pt.vx * dt;
+      pt.y   += pt.vy * dt;
+      pt.vy  *= 0.97;
+      if (pt.age >= pt.life) z.particles.splice(p, 1);
+    }
+
+    // Damage enemies every 0.5s
+    if (z.tickTimer >= 0.5) {
+      z.tickTimer -= 0.5;
+      if (enemies) {
+        for (var j = 0; j < enemies.length; j++) {
+          var en = enemies[j];
+          if (!en || !en.alive || en.dying || en.smoking) continue;
+          var ddx  = en.x - z.wx;
+          var ddy  = en.y - z.wy;
+          var dd   = Math.sqrt(ddx*ddx + ddy*ddy);
+          if (dd <= z.radius) en.takeDamage(Math.round(z.damagePerSec * 0.5));
+        }
+      }
+    }
+
+    if (z.timer >= z.life) _radZones.splice(i, 1);
+  }
+}
+
+function _drawRadZones(ctx) {
+  for (var i = 0; i < _radZones.length; i++) {
+    var z = _radZones[i];
+
+    // Fade curve: stay bright until last 25% of life, then fade out
+    var t         = z.timer / z.life;
+    var fadeAlpha = t < 0.75 ? 1.0 : 1.0 - ((t - 0.75) / 0.25);
+    var pulse     = 0.82 + Math.sin(z.pulseT * 3.0) * 0.18;
+    var finalA    = fadeAlpha * pulse * 0.85;
+
+    // Baked ground glow
+    ctx.save();
+    ctx.globalAlpha = finalA;
+    ctx.drawImage(z.baked, z.wx - z.sz/2, z.wy - z.sz/2);
+    ctx.restore();
+
+    // Rising red/orange particles
+    for (var p = 0; p < z.particles.length; p++) {
+      var pt     = z.particles[p];
+      var palpha = (1 - pt.age / pt.life) * fadeAlpha;
+      var pr     = pt.r * (1 - pt.age / pt.life * 0.4);
+      var heat   = 1 - pt.age / pt.life;
+      ctx.save();
+      ctx.globalAlpha = palpha;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, Math.max(0.8, pr), 0, Math.PI * 2);
+      ctx.fillStyle = "rgb(255," + Math.round(80 * heat) + ",0)";
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+// ── Electric pulses ───────────────────────────────
+var _electricPulses = [];
+
+function _spawnElectricPulse(x, y) {
+  _electricPulses.push({
+    x     : x,
+    y     : y,
+    timer : 0,
+    life  : 1.2,
+    arcs  : Array.from({ length: 8 }, function() {
+      return {
+        angle : Math.random() * Math.PI * 2,
+        len   : 20 + Math.random() * 40,
+        jags  : Math.floor(3 + Math.random() * 4),
+        phase : Math.random() * Math.PI * 2,
+      };
+    }),
+  });
+}
+
+function _updateElectricPulses(dt) {
+  for (var i = _electricPulses.length - 1; i >= 0; i--) {
+    _electricPulses[i].timer += dt;
+    if (_electricPulses[i].timer >= _electricPulses[i].life)
+      _electricPulses.splice(i, 1);
+  }
+}
+
+function _drawElectricPulses(ctx) {
+  for (var i = 0; i < _electricPulses.length; i++) {
+    var ep    = _electricPulses[i];
+    var t     = ep.timer / ep.life;
+    var alpha = t < 0.3 ? (t / 0.3) : (1 - t);
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.9;
+    for (var a = 0; a < ep.arcs.length; a++) {
+      var arc   = ep.arcs[a];
+      // Flicker — skip some arcs each frame for electric effect
+      if (Math.random() < 0.35) continue;
+      var angle = arc.angle + Math.sin(ep.timer * 18 + arc.phase) * 0.3;
+      var len   = arc.len * (1 - t * 0.5);
+      ctx.beginPath();
+      ctx.strokeStyle = Math.random() > 0.4 ? "#aaddff" : "#ffffff";
+      ctx.lineWidth   = 1.5;
+      ctx.shadowColor = "#66bbff";
+      ctx.shadowBlur  = 8;
+      // Jagged lightning arc
+      var sx = ep.x, sy = ep.y;
+      var segLen = len / arc.jags;
+      for (var j = 0; j < arc.jags; j++) {
+        var jAngle = angle + (Math.random() - 0.5) * 1.2;
+        var ex = sx + Math.cos(jAngle) * segLen;
+        var ey = sy + Math.sin(jAngle) * segLen;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ex, ey);
+        sx = ex; sy = ey;
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 }
 
@@ -173,18 +418,27 @@ function AbilityEffectManager() {
 }
 
 AbilityEffectManager.prototype.load = function(onReady) {
-  var keys  = Object.keys(EFFECT_DEFS);
-  var total = keys.length, done = 0;
-  var self  = this;
+  var keys    = Object.keys(EFFECT_DEFS);
+  var self    = this;
+  var total   = 0;
+  var done    = 0;
+
+  function check() { done++; if (done >= total) onReady(); }
+
   keys.forEach(function(id) {
     var def = EFFECT_DEFS[id];
+    total++;
     var img = new Image();
     img.src = def.image;
-    img.onload = img.onerror = function() {
-      self.images[id] = img;
-      done++;
-      if (done >= total) onReady();
-    };
+    img.onload = img.onerror = function() { self.images[id] = img; check(); };
+
+    // Lightning has a second spritesheet
+    if (def.impactImage) {
+      total++;
+      var img2 = new Image();
+      img2.src = def.impactImage;
+      img2.onload = img2.onerror = function() { self.images[id + "_impact"] = img2; check(); };
+    }
   });
 };
 
@@ -193,23 +447,32 @@ AbilityEffectManager.prototype.spawn = function(id, wx, wy, enemies) {
   if (!def) return;
 
   this.active.push({
-    id         : id,
-    wx         : wx,
-    wy         : wy,
-    frame      : 0,
-    frameTimer : 0,
-    totalFrames: def.totalFrames || (def.cols * def.rows),
-    loopCount  : 0,
-    maxLoops   : 1,
-    done       : false,
-    scorchSpawned: false,
+    id            : id,
+    wx            : wx,
+    wy            : wy,
+    frame         : 0,
+    frameTimer    : 0,
+    totalFrames   : def.totalFrames || (def.cols * def.rows),
+    loopCount     : 0,
+    maxLoops      : 1,
+    done          : false,
+    scorchSpawned : false,
+    enemies       : (id === "poison" || id === "nuclear" || id === "lightning") ? enemies : null,
+    poisonApplied : false,
+    nuclearApplied: false,
+    // Lightning impact state
+    impactFrame   : 0,
+    impactTimer   : 0,
+    impactStarted : false,
+    impactDone    : false,
+    lightningApplied: false,
   });
 
   // ── Explosion damage + knockback ──────────────────
   if (id === "explosion" && enemies) {
-    var radius  = def.radius   || 300;
-    var damage  = def.damage   || 60;
-    var kbForce = def.knockback|| 180;
+    var radius  = def.radius    || 300;
+    var damage  = def.damage    || 60;
+    var kbForce = def.knockback || 180;
 
     for (var i = 0; i < enemies.length; i++) {
       var e = enemies[i];
@@ -236,11 +499,15 @@ AbilityEffectManager.prototype.spawn = function(id, wx, wy, enemies) {
     }
   }
 
-  // ── Poison — apply status to enemies in radius ────
-  if (id === "poison" && enemies) {
-    var pradius   = def.radius   || 400;
-    var slowMult  = def.slowMult || 0.4;
-    var duration  = def.duration || 15;
+  // ── Nuclear — immediate damage + screen shake ─────
+  if (id === "nuclear" && enemies) {
+    var nRadius = def.radius      || 600;
+    var nInner  = def.innerRadius || 250;
+    var nDamage = def.damage      || 140;
+
+    if (window._triggerScreenShake) {
+      window._triggerScreenShake(def.shakeDur || 0.5, def.shakeMag || 18);
+    }
 
     for (var i = 0; i < enemies.length; i++) {
       var e = enemies[i];
@@ -249,42 +516,118 @@ AbilityEffectManager.prototype.spawn = function(id, wx, wy, enemies) {
       var dx   = e.x - wx;
       var dy   = e.y - wy;
       var dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > pradius) continue;
+      if (dist > nRadius) continue;
 
-      e.poisoned       = true;
-      e.poisonTimer    = duration;
-      e.poisonTick     = 0;
-      e.poisonSlowMult = slowMult;
+      if (dist <= nInner) {
+        e.takeDamage(e.health);
+      } else {
+        var falloff = 1 - ((dist - nInner) / (nRadius - nInner)) * 0.5;
+        e.takeDamage(Math.round(nDamage * falloff));
+      }
     }
   }
 };
 
-AbilityEffectManager.prototype.update = function(dt) {
+AbilityEffectManager.prototype.update = function(dt, enemies) {
   _updateDmgNumbers(dt);
   _updateScorches(dt);
+  _updateRadZones(dt, enemies);
+  _updateElectricPulses(dt);
 
   for (var i = this.active.length - 1; i >= 0; i--) {
     var e   = this.active[i];
     if (e.done) { this.active.splice(i, 1); continue; }
     var def = EFFECT_DEFS[e.id];
 
+    // ── Lightning impact animation update ─────────
+    if (e.id === "lightning" && e.impactStarted && !e.impactDone) {
+      e.impactTimer += dt;
+      if (e.impactTimer >= 1 / def.impactFps) {
+        e.impactTimer -= 1 / def.impactFps;
+        e.impactFrame++;
+        if (e.impactFrame >= def.impactTotal) e.impactDone = true;
+      }
+    }
+
     e.frameTimer += dt;
     if (e.frameTimer >= 1 / def.fps) {
       e.frameTimer -= 1 / def.fps;
       e.frame++;
 
-      // Spawn scorch when explosion reaches midpoint
+      // Spawn scorch at explosion midpoint
       if (e.id === "explosion" && !e.scorchSpawned && e.frame >= Math.floor(e.totalFrames * 0.5)) {
         _spawnScorch(e.wx, e.wy, def.radius || 300);
         e.scorchSpawned = true;
+      }
+
+      // Lightning — trigger impact + damage at impactFrame
+      if (e.id === "lightning" && !e.lightningApplied && e.frame >= def.impactFrame) {
+        e.lightningApplied = true;
+        e.impactStarted    = true;
+
+        // Damage + slow enemies in radius
+        if (e.enemies) {
+          var radius   = def.radius   || 300;
+          var slowMult = def.slowMult || 0.35;
+          var slowDur  = def.slowDur  || 4;
+          for (var j = 0; j < e.enemies.length; j++) {
+            var en = e.enemies[j];
+            if (!en || !en.alive || en.dying || en.smoking) continue;
+            var ddx  = en.x - e.wx;
+            var ddy  = en.y - e.wy;
+            var dist = Math.sqrt(ddx*ddx + ddy*ddy);
+            if (dist > radius) continue;
+            var falloff = 1 - (dist / radius) * 0.4;
+            en.takeDamage(Math.round((def.damage || 90) * falloff));
+            // Slow
+            if (en.alive && !en.dying) {
+              en.poisonSlowMult = slowMult;
+              en.poisonTimer    = Math.max(en.poisonTimer || 0, slowDur);
+              en.poisoned       = false; // electric slow, not poison
+              en._electricSlow  = slowDur;
+              en._electricTimer = slowDur;
+            }
+            // Electric pulse visual on enemy
+            _spawnElectricPulse(en.x, en.y - 40);
+          }
+        }
       }
 
       if (e.frame >= e.totalFrames) {
         e.loopCount++;
         if (e.loopCount >= e.maxLoops) {
           e.done = true;
+
+          // Spawn radiation zone when nuclear finishes
+          if (e.id === "nuclear" && !e.nuclearApplied) {
+            e.nuclearApplied = true;
+            var nd = EFFECT_DEFS["nuclear"];
+            _spawnRadZone(e.wx, e.wy, nd.radius, nd.radZoneLife, nd.radDamage);
+          }
+
+          // Apply poison when animation finishes
+          if (e.id === "poison" && !e.poisonApplied && e.enemies) {
+            e.poisonApplied = true;
+            var def2     = EFFECT_DEFS["poison"];
+            var pradius  = def2.radius   || 400;
+            var slowMult = def2.slowMult || 0.4;
+            var duration = def2.duration || 10;
+            for (var j = 0; j < e.enemies.length; j++) {
+              var en = e.enemies[j];
+              if (!en || !en.alive || en.dying || en.smoking) continue;
+              var ddx  = en.x - e.wx;
+              var ddy  = en.y - e.wy;
+              var dist = Math.sqrt(ddx*ddx + ddy*ddy);
+              if (dist > pradius) continue;
+              en.poisoned       = true;
+              en.poisonTimer    = duration;
+              en.poisonTick     = 0;
+              en.poisonSlowMult = slowMult;
+            }
+          }
+
         } else {
-          e.frame = 0; // only reset if looping again
+          e.frame = 0;
         }
       }
     }
@@ -305,10 +648,10 @@ function _drawScorches(ctx) {
 
 AbilityEffectManager.prototype.drawScorch = function(ctx) {
   _drawScorches(ctx);
+  _drawRadZones(ctx);
 };
 
 AbilityEffectManager.prototype.drawEffects = function(ctx) {
-  // Explosion/poison sprites
   for (var i = 0; i < this.active.length; i++) {
     var e   = this.active[i];
     var def = EFFECT_DEFS[e.id];
@@ -316,10 +659,9 @@ AbilityEffectManager.prototype.drawEffects = function(ctx) {
     if (!img || !img.complete || img.naturalWidth === 0) continue;
 
     var frame = Math.min(e.frame, e.totalFrames - 1);
-    var col = frame % def.cols;
-    var row = Math.floor(frame / def.cols);
+    var col   = frame % def.cols;
+    var row   = Math.floor(frame / def.cols);
 
-    // Poison fades out on last loop
     var alpha = 1;
     if (e.id === "poison" && e.maxLoops > 1) {
       alpha = e.loopCount < e.maxLoops - 1 ? 1 : 1 - (e.frame / e.totalFrames);
@@ -327,16 +669,39 @@ AbilityEffectManager.prototype.drawEffects = function(ctx) {
 
     ctx.save();
     if (alpha < 1) ctx.globalAlpha = Math.max(0, alpha);
+    // Lightning: anchor bottom of bolt at wy so it connects with impact
+    var spriteY = e.id === "lightning"
+      ? e.wy - def.drawH + (def.drawOffsetY || 0)
+      : e.wy - def.drawH / 2 + (def.drawOffsetY || 0);
     ctx.drawImage(
       img,
       col * def.frameW, row * def.frameH, def.frameW, def.frameH,
-      e.wx - def.drawW / 2,
-      e.wy - def.drawH / 2,
+      e.wx - def.drawW / 2 + (def.drawOffsetX || 0),
+      spriteY,
       def.drawW, def.drawH
     );
     ctx.restore();
+    // Draw lightning impact sprite (sheet 2) on top of bolt
+    if (e.id === "lightning" && e.impactStarted && !e.impactDone) {
+      var iimg = this.images["lightning_impact"];
+      if (iimg && iimg.complete && iimg.naturalWidth > 0) {
+        var iFrame = Math.min(e.impactFrame, def.impactTotal - 1);
+        var iCol   = iFrame % def.impactCols;
+        var iRow   = Math.floor(iFrame / def.impactCols);
+        ctx.save();
+        ctx.drawImage(
+          iimg,
+          iCol * def.impactFrameW, iRow * def.impactFrameH,
+          def.impactFrameW, def.impactFrameH,
+          e.wx - def.impactDrawW / 2,
+          e.wy - def.impactDrawH / 2,
+          def.impactDrawW, def.impactDrawH
+        );
+        ctx.restore();
+      }
+    }
   }
 
-  // Damage numbers on top
   _drawDmgNumbers(ctx);
+  _drawElectricPulses(ctx);
 };

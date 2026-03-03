@@ -27,6 +27,20 @@ window.addEventListener("load", () => {
   const offsetX = 0;
   const offsetY = 0;
 
+  // ── Screen shake ──────────────────────────────────
+  let shakeTimer     = 0;
+  let shakeDuration  = 0;
+  let shakeMagnitude = 0;
+
+  function triggerShake(duration, magnitude) {
+    shakeTimer     = duration;
+    shakeDuration  = duration;
+    shakeMagnitude = magnitude;
+  }
+
+  // Expose for abilityEffects
+  window._triggerScreenShake = triggerShake;
+
   upgradePanel.canvasCSSW = cssW;
   upgradePanel.canvasCSSH = cssH;
 
@@ -45,20 +59,22 @@ window.addEventListener("load", () => {
   towerManager.projectileManager = projectileManager;
 
   canvas.addEventListener("mousemove", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    mouseWorld.x = (e.clientX - rect.left) / scale;
-    mouseWorld.y = (e.clientY - rect.top)  / scale;
-    towerWheel.updateHoverScreen(mouseWorld.x * scale, mouseWorld.y * scale, scale);
+    const rect       = canvas.getBoundingClientRect();
+    const moveScale  = rect.width / world.w;
+    mouseWorld.x = (e.clientX - rect.left) / moveScale;
+    mouseWorld.y = (e.clientY - rect.top)  / moveScale;
+    towerWheel.updateHoverScreen(mouseWorld.x * moveScale, mouseWorld.y * moveScale, moveScale);
     abilityManager.updateHover(e.clientX - rect.left, e.clientY - rect.top, cssW, cssH);
   });
 
   canvas.addEventListener("click", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const wx   = (e.clientX - rect.left) / scale;
-    const wy   = (e.clientY - rect.top)  / scale;
+    const rect    = canvas.getBoundingClientRect();
+    const clickScale = rect.width / world.w;  // use actual rendered size
+    const wx   = (e.clientX - rect.left) / clickScale;
+    const wy   = (e.clientY - rect.top)  / clickScale;
 
-    const sClickX = wx * scale;
-    const sClickY = wy * scale;
+    const sClickX   = wx * clickScale;
+    const sClickY   = wy * clickScale;
     const cssClickX = e.clientX - rect.left;
     const cssClickY = e.clientY - rect.top;
 
@@ -170,6 +186,20 @@ window.addEventListener("load", () => {
       const dt = (timestamp - lastTime) / 1000;
       lastTime  = timestamp;
 
+      if (shakeTimer > 0) {
+        shakeTimer -= dt;
+        if (shakeTimer < 0) shakeTimer = 0;
+      }
+      const shakeProgress = shakeDuration > 0 ? (shakeTimer / shakeDuration) : 0;
+      const shakeAmt      = shakeProgress * shakeMagnitude;
+      const shakeX        = shakeAmt > 0 ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
+      const shakeY        = shakeAmt > 0 ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
+
+      // Apply shake to canvas CSS transform — whole canvas moves, no black edges
+      canvas.style.transform = shakeAmt > 0
+        ? `translate(${shakeX}px, ${shakeY}px)`
+        : "";
+
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -183,7 +213,7 @@ window.addEventListener("load", () => {
       upgradePanel.update(dt);
       hud.update(dt);
       abilityManager.update(dt);
-      abilityEffectManager.update(dt);
+      abilityEffectManager.update(dt, enemies);
       updateEnemyDmgNumbers(dt);
 
       towerManager.draw(c);
@@ -198,15 +228,6 @@ window.addEventListener("load", () => {
       // drawDebugWaypoints(path1Waypoints, "rgba(255,255,0,0.8)");
       // drawDebugWaypoints(path2Waypoints, "rgba(0,255,255,0.8)");
       // drawDebugWaypoints(path3Waypoints, "rgba(255,0,255,0.8)");
-
-      c.setTransform(dpr, 0, 0, dpr, 0, 0);
-      towerWheel.drawScreen(c, scale);
-      hud.draw(c, cssW, cssH);
-      abilityManager.draw(c, cssW, cssH);
-
-      if (upgradePanel.visible && upgradePanel.selectedTower) {
-        upgradePanel.draw(c, upgradePanel.selectedTower, scale, dpr);
-      }
 
       c.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offsetX, dpr * offsetY);
 
@@ -237,8 +258,19 @@ window.addEventListener("load", () => {
         }
       }
 
-      abilityEffectManager.drawEffects(c); // explosion + damage numbers on top
-      drawEnemyDmgNumbers(c);              // arrow hits + poison ticks
+      abilityEffectManager.drawEffects(c); // explosion on top of enemies
+
+      const liveScale = canvas.getBoundingClientRect().width / world.w;
+
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      towerWheel.drawScreen(c, liveScale);
+      hud.draw(c, cssW, cssH);
+      abilityManager.draw(c, cssW, cssH);
+      drawEnemyDmgNumbers(c, liveScale);       // screen-space damage numbers
+
+      if (upgradePanel.visible && upgradePanel.selectedTower) {
+        upgradePanel.draw(c, upgradePanel.selectedTower, scale, dpr);
+      }
 
       requestAnimationFrame(gameLoop);
     }
