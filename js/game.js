@@ -184,6 +184,7 @@ window.addEventListener("load", () => {
       hud.update(dt);
       abilityManager.update(dt);
       abilityEffectManager.update(dt);
+      updateEnemyDmgNumbers(dt);
 
       towerManager.draw(c);
       projectileManager.draw(c);
@@ -237,6 +238,7 @@ window.addEventListener("load", () => {
       }
 
       abilityEffectManager.drawEffects(c); // explosion + damage numbers on top
+      drawEnemyDmgNumbers(c);              // arrow hits + poison ticks
 
       requestAnimationFrame(gameLoop);
     }

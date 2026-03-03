@@ -1,5 +1,59 @@
 // enemies.js — Enemy with sprite sheet walk animation
 
+// ── Floating damage numbers ───────────────────────
+var _enemyDmgNumbers = [];
+
+function _spawnEnemyDmgNumber(x, y, amount, isPoison) {
+  _enemyDmgNumbers.push({
+    x      : x + (Math.random() - 0.5) * 20,
+    y      : y,
+    amount : amount,
+    timer  : 0,
+    life   : 1.0,
+    vy     : -120 - Math.random() * 40,
+    poison : !!isPoison,
+  });
+}
+
+function updateEnemyDmgNumbers(dt) {
+  for (var i = _enemyDmgNumbers.length - 1; i >= 0; i--) {
+    var d = _enemyDmgNumbers[i];
+    d.timer += dt;
+    d.y     += d.vy * dt;
+    d.vy    *= 0.94;
+    if (d.timer >= d.life) _enemyDmgNumbers.splice(i, 1);
+  }
+}
+
+function drawEnemyDmgNumbers(ctx) {
+  for (var i = 0; i < _enemyDmgNumbers.length; i++) {
+    var d     = _enemyDmgNumbers[i];
+    var alpha = 1 - (d.timer / d.life);
+    var size  = Math.round(22 * (1 + (1 - alpha) * 0.3));
+    ctx.save();
+    ctx.globalAlpha  = alpha;
+    ctx.font         = "bold " + size + "px serif";
+    ctx.textAlign    = "center";
+    ctx.textBaseline = "middle";
+    if (d.poison) {
+      // Green poison damage numbers
+      ctx.strokeStyle = "#c90707";
+      ctx.lineWidth   = 3;
+      ctx.strokeText("-" + d.amount, d.x, d.y);
+      ctx.fillStyle   = "#920c0c";
+      ctx.fillText("-" + d.amount, d.x, d.y);
+    } else {
+      // Red damage numbers
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth   = 3;
+      ctx.strokeText("-" + d.amount, d.x, d.y);
+      ctx.fillStyle   = "#ff2222";
+      ctx.fillText("-" + d.amount, d.x, d.y);
+    }
+    ctx.restore();
+  }
+}
+
 const ENEMY_DEFS = {
   enemy1: {
     image     : "./enemy1.png",
@@ -101,6 +155,12 @@ class Enemy {
     this.knockbackVX   = 0;
     this.knockbackVY   = 0;
     this.knockbackTimer= 0;
+
+    // Poison status
+    this.poisoned      = false;
+    this.poisonTimer   = 0;
+    this.poisonTick    = 0;  // accumulates time for 1-second ticks
+    this.poisonSlowMult= 1.0;
     this.dying         = false;
 
     // Smoke state — plays after death animation finishes
@@ -114,10 +174,11 @@ class Enemy {
   get width()  { return this.baseWidth  * this.scale; }
   get height() { return this.baseHeight * this.scale; }
 
-  takeDamage(amount) {
+  takeDamage(amount, isPoison) {
     if (!this.alive || this.dying || this.smoking) return;
-    this.health    -= amount;
-    this.flashTimer = this.flashDuration;
+    this.health -= amount;
+    // Spawn floating damage number above enemy
+    _spawnEnemyDmgNumber(this.x, this.y - 60, amount, isPoison);
     if (this.health <= 0) {
       this.health          = 0;
       this.dying           = true;
@@ -188,7 +249,57 @@ class Enemy {
       return;
     }
 
-    if (this.flashTimer > 0) this.flashTimer -= dt;
+    // Poison — tick damage + slow
+    if (this.poisoned) {
+      this.poisonTimer -= dt;
+      this.poisonTick  += dt;
+      if (this.poisonTick >= 1.0) {
+        this.poisonTick -= 1.0;
+        this.takeDamage(5, true);
+      }
+      if (this.poisonTimer <= 0) {
+        this.poisoned       = false;
+        this.poisonSlowMult = 1.0;
+        this._poisonParticles = [];
+      }
+
+      // Spawn bubble particle
+      if (!this._poisonParticles) this._poisonParticles = [];
+      if (!this._poisonSpawnTimer) this._poisonSpawnTimer = 0;
+      this._poisonSpawnTimer -= dt;
+      if (this._poisonSpawnTimer <= 0) {
+        this._poisonSpawnTimer = 0.18 + Math.random() * 0.15;
+        this._poisonParticles.push({
+          x    : this.x + (Math.random() - 0.5) * 30,
+          y    : this.y - 20,
+          vy   : -(40 + Math.random() * 30),
+          vx   : (Math.random() - 0.5) * 15,
+          r    : 4 + Math.random() * 4,
+          age  : 0,
+          life : 0.8 + Math.random() * 0.5,
+          inner: Math.random() > 0.5 ? "#88ff44" : "#44dd22",
+        });
+      }
+      // Update particles
+      for (var pi = this._poisonParticles.length - 1; pi >= 0; pi--) {
+        var p = this._poisonParticles[pi];
+        p.age += dt;
+        p.x   += p.vx * dt;
+        p.y   += p.vy * dt;
+        p.vy  *= 0.95;
+        if (p.age >= p.life) this._poisonParticles.splice(pi, 1);
+      }
+    } else if (this._poisonParticles && this._poisonParticles.length > 0) {
+      // Drain remaining particles after poison ends
+      for (var pi = this._poisonParticles.length - 1; pi >= 0; pi--) {
+        var p = this._poisonParticles[pi];
+        p.age += dt;
+        p.x   += p.vx * dt;
+        p.y   += p.vy * dt;
+        p.vy  *= 0.95;
+        if (p.age >= p.life) this._poisonParticles.splice(pi, 1);
+      }
+    }
 
     // Knockback — overrides normal movement briefly
     if (this.knockbackTimer > 0) {
@@ -198,7 +309,7 @@ class Enemy {
       return;
     }
 
-    let remaining = this.speed * dt;
+    let remaining = this.speed * this.poisonSlowMult * dt;
     while (remaining > 0) {
       if (this.waypointIndex >= this.waypoints.length) {
         this.alive      = false;
@@ -278,11 +389,28 @@ class Enemy {
       }
       c.restore();
 
-      if (this.flashTimer > 0) {
+      // Poison indicator — rising green bubble particles
+      if (this.poisoned) {
+        if (!this._poisonParticles) {
+          this._poisonParticles = [];
+        }
+        // Spawn new bubble occasionally
+        if (!this._poisonSpawnTimer) this._poisonSpawnTimer = 0;
+        // We use poisonTimer as a proxy — just draw existing particles
         c.save();
-        c.globalAlpha = (this.flashTimer / this.flashDuration) * 0.5;
-        c.fillStyle   = "#ff3300";
-        c.fillRect(drawX - hw, drawY - hh, drawW, drawH);
+        for (var pi = 0; pi < this._poisonParticles.length; pi++) {
+          var p = this._poisonParticles[pi];
+          var palpha = 1 - (p.age / p.life);
+          c.globalAlpha = palpha * 0.85;
+          c.beginPath();
+          c.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          c.fillStyle = p.inner;
+          c.fill();
+          c.globalAlpha = palpha * 0.5;
+          c.strokeStyle = "#00cc33";
+          c.lineWidth   = 1;
+          c.stroke();
+        }
         c.restore();
         c.globalAlpha = 1;
       }

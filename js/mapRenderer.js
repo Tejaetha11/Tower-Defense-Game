@@ -9,17 +9,21 @@ const FLIP_MASK = ~(FLIP_H | FLIP_V | FLIP_D);
 class MapRenderer {
   constructor(mapData, mudKey) {
     this.mapData        = mapData;
-    this.mapW           = mapData.width;      // 19 tiles
-    this.mapH           = mapData.height;     // 10 tiles
-    this.tileSize       = mapData.tilewidth;  // 256px
+    this.mapW           = mapData.width;
+    this.mapH           = mapData.height;
+    this.tileSize       = mapData.tilewidth;
     this.tileImages     = {};
     this.loaded         = false;
     this.placementLayer = null;
     this.offscreen      = null;
 
-    // Mud polygon points for this map — relative to anchor offset
     this.mudPoints      = mudShapes[mudKey] || [];
     this.mudAnchor      = MUD_ANCHOR_OFFSET;
+
+    // Cached hover glow — built once after load
+    this._hoverGlow     = null;   // offscreen canvas
+    this._hoverGlowW    = 0;
+    this._hoverGlowH    = 0;
   }
 
   load(basePath, onReady) {
@@ -34,6 +38,7 @@ class MapRenderer {
       if (done >= total) {
         this._buildPlacementGrid();
         this._preRender();
+        this._preRenderHoverGlow();   // ← bake glow once
         this.loaded = true;
         onReady();
       }
@@ -91,6 +96,60 @@ class MapRenderer {
     });
   }
 
+  // ── Bake the mud-polygon hover glow into an offscreen canvas ──
+  // shadowBlur is very expensive in Chrome — doing it once and
+  // caching it as an image makes drawHover a single cheap drawImage.
+  _preRenderHoverGlow() {
+    if (!this.mudPoints.length) return;
+
+    const ts  = this.tileSize;
+    const pad = 80;   // extra padding so the blur isn't clipped
+
+    // Size of a single tile + padding on all sides
+    const w = ts + pad * 2;
+    const h = ts + pad * 2;
+
+    const oc   = document.createElement("canvas");
+    oc.width   = w;
+    oc.height  = h;
+    const octx = oc.getContext("2d");
+
+    const ax = this.mudAnchor.x + pad;
+    const ay = this.mudAnchor.y + pad;
+
+    // Build polygon path at (0,0) tile origin + padding offset
+    const buildPath = () => {
+      octx.beginPath();
+      this.mudPoints.forEach((pt, i) => {
+        const px = ax + pt.x;
+        const py = ay + pt.y;
+        if (i === 0) octx.moveTo(px, py);
+        else         octx.lineTo(px, py);
+      });
+      octx.closePath();
+    };
+
+    // Soft outer glow
+    buildPath();
+    octx.shadowColor   = "rgba(224, 87, 29, 0.42)";
+    octx.shadowBlur    = 30;
+    octx.strokeStyle   = "rgba(224, 87, 29, 0.32)";
+    octx.lineWidth     = 1;
+    octx.stroke();
+
+    // Bright inner stroke
+    buildPath();
+    octx.shadowColor   = "rgba(224, 88, 29, 0.9)";
+    octx.shadowBlur    = 60;
+    octx.strokeStyle   = "rgba(224, 88, 29, 1)";
+    octx.lineWidth     = 8;
+    octx.stroke();
+
+    this._hoverGlow  = oc;
+    this._hoverGlowW = w;
+    this._hoverGlowH = h;
+  }
+
   _drawLayerToCtx(ctx, layer) {
     const ts = this.tileSize;
 
@@ -137,47 +196,18 @@ class MapRenderer {
     return this.placementLayer[row][col] !== 0;
   }
 
-  // Draw mud polygon glow on hovered placement tile
-  // Same relative polygon applied to every tile's position
+  // Draw hover glow using the pre-baked canvas — single cheap drawImage
   drawHover(ctx, wx, wy) {
     if (!this.isPlaceable(wx, wy)) return;
-    if (!this.mudPoints.length) return;
+    if (!this._hoverGlow) return;
 
-    const col     = Math.floor(wx / this.tileSize);
-    const row     = Math.floor(wy / this.tileSize);
-    const tileX   = col * this.tileSize;
-    const tileY   = row * this.tileSize;
+    const col   = Math.floor(wx / this.tileSize);
+    const row   = Math.floor(wy / this.tileSize);
+    const tileX = col * this.tileSize;
+    const tileY = row * this.tileSize;
+    const pad   = 80;
 
-    // Anchor offset within the tile
-    const ax = this.mudAnchor.x;
-    const ay = this.mudAnchor.y;
-
-    ctx.save();
-
-    // Build the polygon path offset to this tile's position
-    ctx.beginPath();
-    this.mudPoints.forEach((pt, i) => {
-      const px = tileX + ax + pt.x;
-      const py = tileY + ay + pt.y;
-      if (i === 0) ctx.moveTo(px, py);
-      else         ctx.lineTo(px, py);
-    });
-    ctx.closePath();
-
-    // Glow outline — shadowBlur follows the polygon shape
-    ctx.shadowColor   = "rgba(224, 87, 29, 0.42)";
-    ctx.shadowBlur    = 30;
-    ctx.strokeStyle   = "rgba(224, 87, 29, 0.32)";
-    ctx.lineWidth     = 1;
-    ctx.stroke();
-
-    // Second pass for stronger glow
-    ctx.shadowBlur    = 60;
-    ctx.strokeStyle   = "rgba(224, 88, 29, 1)";
-    ctx.lineWidth     = 8;
-    ctx.stroke();
-
-
-    ctx.restore();
+    // Offset back by pad so the baked image aligns with the tile
+    ctx.drawImage(this._hoverGlow, tileX - pad, tileY - pad);
   }
 }

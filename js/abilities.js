@@ -5,6 +5,7 @@ const ABILITY_CFG = {
   cardH    : 72,
   cardGap  : 10,
   bottomY  : 18,
+  iconSize : 36,
   fontSize : 6.5,
   costSize : 8,
 };
@@ -15,6 +16,93 @@ const ABILITY_DEFS = [
   { id:"poison",    label:"Poison Gas", cost:90,  cooldown:20, color:"#c0ff90", image:"img/special abilities/poisonous gas.png" },
   { id:"explosion", label:"Explosion",  cost:100, cooldown:18, color:"#ffb060", image:"img/special abilities/explosion.png"     },
 ];
+
+// Pre-bake card frames (normal, hover, selected) into offscreen canvases
+function _bakeCardFrame(state) {
+  var W = ABILITY_CFG.cardW, H = ABILITY_CFG.cardH;
+  var oc   = document.createElement("canvas");
+  oc.width = W; oc.height = H;
+  var ctx  = oc.getContext("2d");
+  var r    = 3;
+
+  // Parchment body
+  var pg = ctx.createLinearGradient(0, 0, W, H);
+  if (state === "sel") {
+    pg.addColorStop(0, "#f5e8c0"); pg.addColorStop(0.25, "#edd9a3");
+    pg.addColorStop(0.5, "#e8cf90"); pg.addColorStop(0.75, "#edd9a3");
+    pg.addColorStop(1, "#e0c878");
+  } else if (state === "cd") {
+    pg.addColorStop(0, "#a89878"); pg.addColorStop(0.5, "#907858");
+    pg.addColorStop(1, "#786040");
+  } else if (state === "hov") {
+    pg.addColorStop(0, "#f0e0b0"); pg.addColorStop(0.5, "#e8d090");
+    pg.addColorStop(1, "#dcc070");
+  } else {
+    pg.addColorStop(0, "#e8d8a8"); pg.addColorStop(0.25, "#d8c888");
+    pg.addColorStop(0.5, "#cbb870"); pg.addColorStop(0.75, "#d8c888");
+    pg.addColorStop(1, "#c8a850");
+  }
+  ctx.beginPath(); ctx.roundRect(0, 0, W, H, r);
+  ctx.fillStyle = pg; ctx.fill();
+
+  // Grain texture
+  for (var gx = 0; gx < W; gx += 3) {
+    for (var gy = 0; gy < H; gy += 3) {
+      var v = (Math.sin(gx * 7.3 + gy * 13.7) * 0.5 + 0.5) * 0.10;
+      ctx.fillStyle = "rgba(0,0,0," + v + ")";
+      ctx.fillRect(gx, gy, 2, 2);
+    }
+  }
+
+  // Vignette
+  var vg = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.85);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, state === "cd" ? "rgba(0,0,0,0.5)" : "rgba(80,40,0,0.3)");
+  ctx.beginPath(); ctx.roundRect(0, 0, W, H, r);
+  ctx.fillStyle = vg; ctx.fill();
+
+  // Outer ink border
+  ctx.beginPath(); ctx.roundRect(0, 0, W, H, r);
+  ctx.strokeStyle = state === "cd" ? "#2a2018" : (state === "sel" ? "#1a0800" : "#2e1e08");
+  ctx.lineWidth = 2.5; ctx.stroke();
+
+  // Inner decorative line
+  ctx.beginPath(); ctx.roundRect(3, 3, W-6, H-6, 2);
+  ctx.strokeStyle = state === "cd" ? "rgba(40,25,10,0.4)" : (state === "sel" ? "rgba(80,40,0,0.8)" : "rgba(60,30,5,0.5)");
+  ctx.lineWidth = 1; ctx.stroke();
+
+  // Corner flourishes
+  var ci = state === "cd" ? "rgba(40,25,10,0.4)" : (state === "sel" ? "rgba(100,50,0,0.9)" : "rgba(80,40,0,0.6)");
+  ctx.strokeStyle = ci; ctx.lineWidth = 1; ctx.fillStyle = ci;
+  // top-left
+  ctx.beginPath(); ctx.moveTo(3,10); ctx.lineTo(3,3); ctx.lineTo(10,3); ctx.stroke();
+  ctx.beginPath(); ctx.arc(6,6,2,0,Math.PI*2); ctx.fill();
+  // top-right
+  ctx.beginPath(); ctx.moveTo(W-3,10); ctx.lineTo(W-3,3); ctx.lineTo(W-10,3); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W-6,6,2,0,Math.PI*2); ctx.fill();
+  // bottom-left
+  ctx.beginPath(); ctx.moveTo(3,H-10); ctx.lineTo(3,H-3); ctx.lineTo(10,H-3); ctx.stroke();
+  ctx.beginPath(); ctx.arc(6,H-6,2,0,Math.PI*2); ctx.fill();
+  // bottom-right
+  ctx.beginPath(); ctx.moveTo(W-3,H-10); ctx.lineTo(W-3,H-3); ctx.lineTo(W-10,H-3); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W-6,H-6,2,0,Math.PI*2); ctx.fill();
+
+  return oc;
+}
+
+// Baked card frames — created once
+var _cardFrames = null;
+function _getCardFrames() {
+  if (!_cardFrames) {
+    _cardFrames = {
+      normal : _bakeCardFrame("normal"),
+      hover  : _bakeCardFrame("hov"),
+      sel    : _bakeCardFrame("sel"),
+      cd     : _bakeCardFrame("cd"),
+    };
+  }
+  return _cardFrames;
+}
 
 class AbilityManager {
   constructor() {
@@ -105,185 +193,77 @@ class AbilityManager {
 
   _drawCard(ctx, x, y, a, onCD, isSel, isHov) {
     var W = ABILITY_CFG.cardW, H = ABILITY_CFG.cardH;
-    var fontSize = ABILITY_CFG.fontSize, costSize = ABILITY_CFG.costSize;
+    var costSize = ABILITY_CFG.costSize;
+    var frames   = _getCardFrames();
 
     ctx.save();
 
-    // ── Shadow ─────────────────────────────────────
-    ctx.shadowColor   = "rgba(0,0,0,0.7)";
-    ctx.shadowBlur    = 10;
-    ctx.shadowOffsetY = 4;
-    ctx.beginPath();
-    ctx.roundRect(x, y, W, H, 3);
-    ctx.fillStyle = "#000";
-    ctx.fill();
+    // Shadow
+    ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+    ctx.beginPath(); ctx.roundRect(x, y, W, H, 3);
+    ctx.fillStyle = "#000"; ctx.fill();
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
-    // ── Parchment body ─────────────────────────────
-    var pg = ctx.createLinearGradient(x, y, x + W, y + H);
+    // Baked card frame — single drawImage
+    var frame = onCD ? frames.cd : (isSel ? frames.sel : (isHov ? frames.hover : frames.normal));
+    ctx.drawImage(frame, x, y);
+
+    // Selected glow
     if (isSel) {
-      pg.addColorStop(0,    "#f5e8c0");
-      pg.addColorStop(0.25, "#edd9a3");
-      pg.addColorStop(0.5,  "#e8cf90");
-      pg.addColorStop(0.75, "#edd9a3");
-      pg.addColorStop(1,    "#e0c878");
-    } else if (onCD) {
-      pg.addColorStop(0,    "#a89878");
-      pg.addColorStop(0.5,  "#907858");
-      pg.addColorStop(1,    "#786040");
-    } else if (isHov) {
-      pg.addColorStop(0,    "#f0e0b0");
-      pg.addColorStop(0.5,  "#e8d090");
-      pg.addColorStop(1,    "#dcc070");
-    } else {
-      pg.addColorStop(0,    "#e8d8a8");
-      pg.addColorStop(0.25, "#d8c888");
-      pg.addColorStop(0.5,  "#cbb870");
-      pg.addColorStop(0.75, "#d8c888");
-      pg.addColorStop(1,    "#c8a850");
+      ctx.save();
+      ctx.shadowColor = "rgba(255,200,60,0.9)"; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.roundRect(x, y, W, H, 3);
+      ctx.strokeStyle = "rgba(255,180,40,0.8)"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
     }
-    ctx.beginPath();
-    ctx.roundRect(x, y, W, H, 3);
-    ctx.fillStyle = pg;
-    ctx.fill();
 
-    // ── Noise/grain texture overlay ────────────────
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(x, y, W, H, 3);
-    ctx.clip();
-    for (var gx = 0; gx < W; gx += 3) {
-      for (var gy = 0; gy < H; gy += 3) {
-        var v = (Math.sin(gx * 7.3 + gy * 13.7) * 0.5 + 0.5) * 0.12;
-        ctx.fillStyle = "rgba(0,0,0," + v + ")";
-        ctx.fillRect(x + gx, y + gy, 2, 2);
-      }
-    }
-    ctx.restore();
-
-    // ── Aged edge vignette ─────────────────────────
-    var vg = ctx.createRadialGradient(
-      x + W/2, y + H/2, H * 0.2,
-      x + W/2, y + H/2, H * 0.85
-    );
-    vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, onCD ? "rgba(0,0,0,0.5)" : "rgba(80,40,0,0.35)");
-    ctx.beginPath();
-    ctx.roundRect(x, y, W, H, 3);
-    ctx.fillStyle = vg;
-    ctx.fill();
-
-    // ── Ink border — outer thick ───────────────────
-    ctx.beginPath();
-    ctx.roundRect(x, y, W, H, 3);
-    ctx.strokeStyle = onCD ? "#2a2018" : (isSel ? "#1a0800" : "#2e1e08");
-    ctx.lineWidth   = 2.5;
-    ctx.stroke();
-
-    // ── Ink border — inner decorative line ─────────
-    ctx.beginPath();
-    ctx.roundRect(x + 3, y + 3, W - 6, H - 6, 2);
-    ctx.strokeStyle = onCD ? "rgba(40,25,10,0.4)" : (isSel ? "rgba(80,40,0,0.8)" : "rgba(60,30,5,0.5)");
-    ctx.lineWidth   = 1;
-    ctx.stroke();
-
-    // ── Corner ink flourishes ──────────────────────
-    var ci = onCD ? "rgba(40,25,10,0.4)" : (isSel ? "rgba(100,50,0,0.9)" : "rgba(80,40,0,0.6)");
-    // top-left
-    ctx.strokeStyle = ci; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x+3, y+10); ctx.lineTo(x+3, y+3); ctx.lineTo(x+10, y+3); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x+6, y+6, 2, 0, Math.PI*2); ctx.fillStyle = ci; ctx.fill();
-    // top-right
-    ctx.beginPath(); ctx.moveTo(x+W-3, y+10); ctx.lineTo(x+W-3, y+3); ctx.lineTo(x+W-10, y+3); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x+W-6, y+6, 2, 0, Math.PI*2); ctx.fill();
-    // bottom-left
-    ctx.beginPath(); ctx.moveTo(x+3, y+H-10); ctx.lineTo(x+3, y+H-3); ctx.lineTo(x+10, y+H-3); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x+6, y+H-6, 2, 0, Math.PI*2); ctx.fill();
-    // bottom-right
-    ctx.beginPath(); ctx.moveTo(x+W-3, y+H-10); ctx.lineTo(x+W-3, y+H-3); ctx.lineTo(x+W-10, y+H-3); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x+W-6, y+H-6, 2, 0, Math.PI*2); ctx.fill();
-
-    // ── Icon — full area, clipped ──────────────────
+    // Icon
     var pad   = 6;
-    var iconX = x + pad;
-    var iconY = y + pad;
-    var iconW = W - pad * 2;
-    var iconH = H - pad * 2 - 20;
-
-    var img = this.images[a.id];
+    var iconX = x + pad, iconY = y + pad;
+    var iconW = W - pad * 2, iconH = H - pad * 2 - 20;
+    var img   = this.images[a.id];
     if (img && img.complete && img.naturalWidth > 0) {
       ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(iconX, iconY, iconW, iconH, 2);
-      ctx.clip();
+      ctx.beginPath(); ctx.roundRect(iconX, iconY, iconW, iconH, 2); ctx.clip();
       if (onCD) ctx.globalAlpha = 0.25;
-      // Slight sepia on icon for parchment feel
       ctx.drawImage(img, iconX, iconY, iconW, iconH);
       ctx.restore();
     }
 
-    // ── Cooldown overlay ───────────────────────────
+    // Cooldown overlay
     if (onCD) {
-      var icx = iconX + iconW / 2, icy = iconY + iconH / 2;
+      var icx = iconX + iconW/2, icy = iconY + iconH/2;
       ctx.save();
-
-      // Slight dark tint over whole card
-      ctx.beginPath();
-      ctx.roundRect(x, y, W, H, 3);
-      ctx.fillStyle = "rgba(0,0,0,0.45)";
-      ctx.fill();
-
-      // Countdown number — big, centered on icon area
-      ctx.fillStyle    = "#fff8e8";
-      ctx.strokeStyle  = "#2e1e08";
-      ctx.lineWidth    = 4;
-      ctx.font         = "bold " + Math.round(costSize + 8) + "px serif";
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "middle";
+      ctx.beginPath(); ctx.roundRect(x, y, W, H, 3);
+      ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fill();
+      ctx.fillStyle = "#fff8e8"; ctx.strokeStyle = "#2e1e08"; ctx.lineWidth = 3;
+      ctx.font = "bold " + Math.round(costSize+8) + "px serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.strokeText(Math.ceil(this.cooldowns[a.id]), icx, icy);
       ctx.fillText(Math.ceil(this.cooldowns[a.id]), icx, icy);
-
       ctx.restore();
     }
 
-    // ── Selected glow ──────────────────────────────
-    if (isSel) {
-      ctx.save();
-      ctx.shadowColor = "rgba(255,200,60,0.9)";
-      ctx.shadowBlur  = 16;
-      ctx.beginPath();
-      ctx.roundRect(x, y, W, H, 3);
-      ctx.strokeStyle = "rgba(255,180,40,0.8)";
-      ctx.lineWidth   = 2;
-      ctx.stroke();
-      ctx.restore();
-    }
+    // Label
+    ctx.fillStyle = onCD ? "#6a5030" : (isSel ? "#3a1500" : "#3a2005");
+    ctx.font = "bold " + Math.round(ABILITY_CFG.fontSize) + "px serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.shadowColor = onCD ? "transparent" : "rgba(255,220,140,0.6)"; ctx.shadowBlur = 2;
+    ctx.fillText(a.label, x + W/2, y + H - 18);
+    ctx.shadowBlur = 0;
 
-    // ── Label ──────────────────────────────────────
-    var labelY = y + H - 18;
-    ctx.fillStyle    = onCD ? "#6a5030" : (isSel ? "#3a1500" : "#3a2005");
-    ctx.font         = "bold " + Math.round(fontSize) + "px serif";
-    ctx.textAlign    = "center";
-    ctx.textBaseline = "middle";
-    // Ink text shadow
-    ctx.shadowColor  = onCD ? "transparent" : "rgba(255,220,140,0.6)";
-    ctx.shadowBlur   = 2;
-    ctx.fillText(a.label, x + W / 2, labelY);
-    ctx.shadowBlur   = 0;
-
-    // ── Cost ───────────────────────────────────────
+    // Cost
     var coinX = x + W/2 - 13, coinY = y + H - 7;
-    ctx.beginPath(); ctx.arc(coinX, coinY, 4, 0, Math.PI * 2);
-    ctx.fillStyle   = onCD ? "#5a4020" : "#c8900a"; ctx.fill();
+    ctx.beginPath(); ctx.arc(coinX, coinY, 4, 0, Math.PI*2);
+    ctx.fillStyle = onCD ? "#5a4020" : "#c8900a"; ctx.fill();
     ctx.strokeStyle = onCD ? "#3a2810" : "#7a5000"; ctx.lineWidth = 1; ctx.stroke();
     if (!onCD) {
-      ctx.beginPath(); ctx.arc(coinX - 1, coinY - 1, 1.5, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(coinX-1, coinY-1, 1.5, 0, Math.PI*2);
       ctx.fillStyle = "rgba(255,230,150,0.7)"; ctx.fill();
     }
-    ctx.fillStyle    = onCD ? "#6a5030" : "#3a1500";
-    ctx.font         = "bold " + Math.round(costSize) + "px serif";
-    ctx.textAlign    = "left";
-    ctx.textBaseline = "middle";
+    ctx.fillStyle = onCD ? "#6a5030" : "#3a1500";
+    ctx.font = "bold " + Math.round(costSize) + "px serif";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText(a.cost, x + W/2 - 6, coinY);
 
     ctx.restore();
@@ -291,7 +271,6 @@ class AbilityManager {
 
   draw(ctx, cssW, cssH) {
     var positions = this._getPositions(cssW, cssH);
-
     for (var i = 0; i < ABILITY_DEFS.length; i++) {
       var a     = ABILITY_DEFS[i];
       var p     = positions[i];
@@ -301,34 +280,22 @@ class AbilityManager {
       this._drawCard(ctx, p.x, p.y, a, onCD, isSel, isHov);
     }
 
-    // ── Activation hint ────────────────────────────
+    // Activation hint
     if (this.selected) {
-      var hint  = "Click on the map to activate";
+      var hint = "Click on the map to activate";
       var hintH = 26, hintW = 210;
-      var hintX = cssW / 2 - hintW / 2;
+      var hintX = cssW/2 - hintW/2;
       var hintY = positions[0].y - hintH - 8;
-
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.6)";
-      ctx.shadowBlur  = 10;
-      ctx.shadowOffsetY = 3;
-      ctx.beginPath();
-      ctx.roundRect(hintX, hintY, hintW, hintH, 3);
-      var hpg = ctx.createLinearGradient(hintX, hintY, hintX + hintW, hintY + hintH);
-      hpg.addColorStop(0,   "#e8d898");
-      hpg.addColorStop(0.5, "#d4c070");
-      hpg.addColorStop(1,   "#c8a840");
-      ctx.fillStyle = hpg; ctx.fill();
+      ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+      ctx.beginPath(); ctx.roundRect(hintX, hintY, hintW, hintH, 3);
+      ctx.fillStyle = "#d4c070"; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
       ctx.beginPath(); ctx.roundRect(hintX, hintY, hintW, hintH, 3);
       ctx.strokeStyle = "#2e1e08"; ctx.lineWidth = 2; ctx.stroke();
-      ctx.beginPath(); ctx.roundRect(hintX+3, hintY+3, hintW-6, hintH-6, 2);
-      ctx.strokeStyle = "rgba(60,30,5,0.4)"; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle    = "#2e1e08";
-      ctx.font         = "bold 11px serif";
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(hint, cssW / 2, hintY + hintH / 2);
+      ctx.fillStyle = "#2e1e08";
+      ctx.font = "bold 11px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(hint, cssW/2, hintY + hintH/2);
       ctx.restore();
     }
   }
