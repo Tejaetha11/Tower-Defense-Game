@@ -1,25 +1,712 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tower Defense</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tower Defense</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+<style>
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --wood-dark:  #110b04; --wood-mid: #2d1f0e; --wood-light: #3d2a14; --plank: #241508;
+    --gold: #c9a84c; --gold-dim: #7a6130; --gold-glow: rgba(201,168,76,0.25);
+    --text: #f0e6d0; --text-dim: #9a8a70; --border: rgba(201,168,76,0.18);
+  }
+  html, body { width:100%; height:100%; color:var(--text); font-family:'Crimson Pro',serif; overflow:hidden; background:#0a0804; }
+
+  /* BG IMAGE */
+  #bg-image {
+    position:fixed; inset:0; z-index:0;
+    background-image: url('mainscreen background.jpg');
+    background-size:cover; background-position:center; background-repeat:no-repeat;
+  }
+  #bg-canvas { position:fixed; inset:0; z-index:1; pointer-events:none; }
+
+  /* OVERLAYS */
+  .vignette {
+    position:fixed; inset:0; z-index:2; pointer-events:none;
+    background: radial-gradient(ellipse at center, transparent 20%, rgba(5,3,1,0.5) 60%, rgba(5,3,1,0.88) 100%);
+  }
+  .dim-overlay { position:fixed; inset:0; z-index:2; pointer-events:none; background:rgba(8,5,2,0.42); }
+
+  /* SCREENS */
+  .screen { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:opacity .5s ease, transform .5s ease; }
+  .screen.hidden { opacity:0; pointer-events:none; transform:translateY(16px); }
+
+  .logo-wrap { text-align:center; margin-bottom:48px; animation:fadeUp 1s ease both; position:relative; }
+
+  /* LOGO */
+  .logo-title {
+    font-family:'Cinzel',serif; font-size:clamp(50px,7vw,88px);
+    font-weight:900; line-height:.92; letter-spacing:3px; color:var(--text);
+    text-shadow: 0 0 80px var(--gold-glow), 0 3px 6px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8);
+    animation: titlePulse 3s ease-in-out infinite alternate;
+  }
+  @keyframes titlePulse {
+    from { text-shadow: 0 0 80px rgba(201,168,76,0.25), 0 3px 6px rgba(0,0,0,0.9); }
+    to   { text-shadow: 0 0 120px rgba(201,168,76,0.55), 0 3px 6px rgba(0,0,0,0.9), 0 0 60px rgba(201,100,0,0.3); }
+  }
+  .logo-title .gold { color:var(--gold); }
+  .logo-sub { font-size:15px; font-weight:300; font-style:italic; color:var(--text-dim); margin-top:14px; letter-spacing:2px; }
+
+  .divider { display:flex; align-items:center; gap:14px; width:270px; margin:0 auto 42px; animation:fadeUp 1s .1s ease both; }
+  .div-line { flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--gold-dim),transparent); }
+  .div-icon { font-size:15px; color:var(--gold-dim); text-shadow:0 0 10px var(--gold-glow); animation:divIconSpin 6s linear infinite; }
+  @keyframes divIconSpin { 0%,100%{transform:rotate(0deg);} 50%{transform:rotate(180deg);} }
+
+  .menu-btns { display:flex; flex-direction:column; gap:12px; width:256px; animation:fadeUp 1s .2s ease both; }
+
+  .btn { font-family:'Cinzel',serif; font-size:12px; letter-spacing:4px; text-transform:uppercase; padding:15px 28px; border:none; cursor:pointer; transition:all .2s ease; }
+  .btn:active { transform:scale(.97) translateY(1px); }
+  .btn-gold {
+    background: repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 6px), linear-gradient(180deg,#d4b055 0%,#8a6820 100%);
+    color:#1a0f00; font-weight:600; border:1px solid rgba(255,220,100,.45);
+    clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%);
+    box-shadow:inset 0 1px 0 rgba(255,230,120,.5),inset 0 -2px 0 rgba(0,0,0,.4), 0 4px 22px rgba(201,168,76,.35),0 2px 4px rgba(0,0,0,.5);
+  }
+  .btn-gold:hover {
+    background: repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 6px), linear-gradient(180deg,#e0bf65 0%,#9a7830 100%);
+    box-shadow:inset 0 1px 0 rgba(255,230,120,.5),inset 0 -2px 0 rgba(0,0,0,.4), 0 6px 32px rgba(201,168,76,.65),0 2px 4px rgba(0,0,0,.5);
+    transform:translateY(-2px);
+  }
+  .btn-wood {
+    background: repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 6px), linear-gradient(180deg,var(--wood-light) 0%,var(--wood-mid) 100%);
+    color:var(--text-dim); border:1px solid rgba(201,168,76,.2);
+    box-shadow:inset 0 1px 0 rgba(255,220,100,.08),inset 0 -2px 0 rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.4);
+  }
+  .btn-wood:hover { color:var(--text); border-color:rgba(201,168,76,.38); transform:translateY(-2px); }
+
+  .version { position:fixed; bottom:18px; right:22px; z-index:20; font-family:'Cinzel',serif; font-size:10px; letter-spacing:2px; color:var(--text-dim); opacity:.35; }
+
+  /* LEVEL SELECT */
+  #level-select { padding:40px; }
+  .scroll-header { position:relative; margin-bottom:38px; text-align:center; animation:fadeUp .7s ease both; }
+  .scroll-inner {
+    display:inline-block; padding:14px 52px;
+    background: repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 6px), linear-gradient(180deg,#3a2510,#1e1208);
+    border-top:2px solid var(--gold-dim); border-bottom:2px solid var(--gold-dim);
+  }
+  .nail { position:absolute; top:50%; transform:translateY(-50%); width:11px; height:11px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#c9a84c,#5a3a10); box-shadow:0 1px 4px rgba(0,0,0,.7); }
+  .nail.l { left:14px; } .nail.r { right:14px; }
+  .scroll-eyebrow { font-family:'Cinzel',serif; font-size:10px; letter-spacing:6px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:6px; }
+  .scroll-title { font-family:'Cinzel',serif; font-size:clamp(24px,3.5vw,38px); font-weight:600; color:var(--text); text-shadow:0 0 24px var(--gold-glow); }
+  .grid { display:grid; grid-template-columns:repeat(3,210px); gap:14px; animation:fadeUp .7s .1s ease both; }
+  .lcard {
+    position:relative; padding:22px 18px; cursor:pointer; transition:all .22s ease;
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+    background: repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 6px), linear-gradient(155deg,rgba(61,42,20,.92) 0%,rgba(36,21,8,.95) 100%);
+    border:1px solid rgba(201,168,76,.14); backdrop-filter:blur(2px);
+    box-shadow:inset 0 1px 0 rgba(255,220,100,.07),0 4px 16px rgba(0,0,0,.55);
+  }
+  .lcard:hover { transform:translateY(-3px); border-color:rgba(201,168,76,.42); box-shadow:inset 0 1px 0 rgba(255,220,100,.1),0 10px 30px rgba(0,0,0,.65),0 0 18px rgba(201,168,76,.12); }
+  .lcard.locked { opacity:.42; cursor:not-allowed; filter:grayscale(.25); }
+  .lcard.locked:hover { transform:none; border-color:rgba(201,168,76,.14); }
+  .lnum { font-family:'Cinzel',serif; font-size:10px; letter-spacing:4px; color:var(--gold-dim); margin-bottom:7px; }
+  .lstars { display:flex; gap:3px; margin-bottom:9px; }
+  .star { font-size:11px; }
+  .star.on  { color:var(--gold); text-shadow:0 0 5px var(--gold-glow); }
+  .star.off { color:rgba(201,168,76,.18); }
+  .lname { font-family:'Cinzel',serif; font-size:14px; font-weight:600; color:var(--text); margin-bottom:5px; line-height:1.2; }
+  .ldesc { font-size:12px; font-weight:300; color:var(--text-dim); line-height:1.5; margin-bottom:15px; }
+  .lmeta { display:flex; gap:10px; align-items:center; }
+  .ldiff { display:flex; gap:3px; }
+  .dd { width:5px; height:5px; border-radius:50%; background:rgba(201,168,76,.14); }
+  .dd.on { background:var(--gold); box-shadow:0 0 4px var(--gold-glow); }
+  .dd.danger { background:#c05030; box-shadow:0 0 4px rgba(192,80,48,.5); }
+  .lwaves { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+  .lock-ico { position:absolute; top:14px; right:14px; width:13px; height:13px; opacity:.35; }
+  .btn-back {
+    position:fixed; top:26px; left:34px; z-index:20;
+    font-family:'Cinzel',serif; font-size:10px; letter-spacing:3px;
+    color:var(--text-dim); background:none; border:none; cursor:pointer;
+    display:flex; align-items:center; gap:8px; transition:color .2s; animation:fadeUp .7s ease both;
+  }
+  .btn-back:hover { color:var(--text); }
+  .btn-back:hover svg { transform:translateX(-3px); }
+  .btn-back svg { transition:transform .2s; }
+
+  /* MODAL */
+  .modal-bg { position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.78); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
+  .modal-bg.open { opacity:1; pointer-events:all; }
+  .modal {
+    width:340px; padding:34px;
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    transform:translateY(14px); transition:transform .3s;
+    background: repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 6px), linear-gradient(180deg,var(--wood-light),var(--plank));
+    border:1px solid rgba(201,168,76,.24);
+    box-shadow:0 24px 64px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,220,100,.1);
+  }
+  .modal-bg.open .modal { transform:translateY(0); }
+  .modal-title { font-family:'Cinzel',serif; font-size:16px; font-weight:600; color:var(--text); letter-spacing:2px; margin-bottom:26px; padding-bottom:14px; border-bottom:1px solid rgba(201,168,76,.14); }
+  .srow { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid rgba(201,168,76,.07); }
+  .srow:last-of-type { border-bottom:none; }
+  .slabel { font-family:'Cinzel',serif; font-size:10px; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase; }
+  .toggle { width:38px; height:20px; border-radius:10px; cursor:pointer; background:rgba(0,0,0,.45); border:1px solid rgba(201,168,76,.18); position:relative; transition:background .2s; }
+  .toggle.on { background:var(--gold-dim); border-color:var(--gold); }
+  .toggle::after { content:''; position:absolute; width:14px; height:14px; border-radius:50%; background:var(--text); top:2px; left:2px; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.45); }
+  .toggle.on::after { transform:translateX(18px); }
+  .slider { -webkit-appearance:none; width:96px; height:2px; background:rgba(201,168,76,.2); outline:none; cursor:pointer; }
+  .slider::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--gold); cursor:pointer; box-shadow:0 0 6px var(--gold-glow); }
+  .mc { margin-top:22px; width:100%; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
+
+  /* Wrapper holds canvas + UI together at canvas size */
+  #canvas-wrap {
+    position: relative;
+    width: 1280px;
+    display: block;
+    margin: 0 auto;
+  }
+  #game {
+    display: block;
+    width: 1280px;
+  }
+
+  /* ── LOADING SCREEN ── */
+  #loading-screen {
+    position: absolute; inset: 0; z-index: 200; overflow: hidden;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 72px;
+    transition: opacity 0.7s ease; opacity: 0; pointer-events: none;
+  }
+  #loading-screen .load-bg {
+    position: absolute; inset: 0;
+    background: url('loading screen.jpg') center/cover no-repeat;
+  }
+  .load-bar-outer {
+    position: relative; z-index: 2;
+    width: 320px;
+  }
+  .load-bar-header {
+    display: flex; justify-content: space-between;
+    margin-bottom: 9px;
+  }
+  .load-bar-label {
+    font-family: 'Cinzel', serif; font-size: 10px;
+    letter-spacing: 4px; color: rgba(240,230,208,0.75); text-transform: uppercase;
+  }
+  .load-pct {
+    font-family: 'Cinzel', serif; font-size: 10px;
+    letter-spacing: 2px; color: rgba(201,168,76,0.85);
+  }
+  .load-track {
+    width: 100%; height: 2px; background: rgba(201,168,76,0.18); position: relative;
+  }
+  .load-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #7a6130, #c9a84c);
+    transition: width 0.2s ease;
+    box-shadow: 0 0 10px rgba(201,168,76,0.6);
+    position: relative;
+  }
+  .load-bar::after {
+    content:''; position:absolute; right:-1px; top:-3px;
+    width:2px; height:8px; background:#f0d060;
+    box-shadow: 0 0 6px #c9a84c;
+  }
+
+  /* UI layer sits exactly over canvas */
+  #ui-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    overflow: hidden;
+  }
+  /* All fixed elements inside UI become absolute, scoped to canvas */
+  #ui-layer .screen,
+  #ui-layer #bg-image,
+  #ui-layer #bg-canvas,
+  #ui-layer .vignette,
+  #ui-layer .dim-overlay,
+  #ui-layer .modal-bg,
+  #ui-layer .btn-back,
+  #ui-layer .version {
+    position: absolute !important;
+  }
+</style>
 </head>
 <body>
+
+<div id="canvas-wrap">
   <canvas id="game"></canvas>
 
-  <script src="js/waypoints.js"></script>
-  <script src="js/mudData.js"></script>
-  <script src="js/enemies.js"></script>
-  <script src="js/towerWheel.js"></script>
-  <script src="js/projectile.js"></script>
-  <script src="js/tower.js"></script>
-  <script src="js/upgradePanel.js"></script>
-  <script src="js/hud.js"></script>
-  <script src="js/abilities.js"></script>
-  <script src="js/abilityEffects.js"></script>
-  <script src="js/mapRenderer.js"></script>
-  <script src="js/game.js"></script>
+  <!-- Loading screen — just background image + progress bar at bottom center -->
+  <div id="loading-screen">
+    <div class="load-bg"></div>
+    <div class="load-bar-outer">
+      <div class="load-bar-header">
+        <span class="load-bar-label" id="load-text">Preparing...</span>
+        <span class="load-pct" id="load-pct">0%</span>
+      </div>
+      <div class="load-track">
+        <div class="load-bar" id="load-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ui-layer">
+    <div id="bg-image"></div>
+    <canvas id="bg-canvas"></canvas>
+    <div class="vignette"></div>
+    <div class="dim-overlay"></div>
+
+    <!-- MAIN MENU -->
+    <div class="screen" id="main-menu">
+      <div class="logo-wrap">
+        <h1 class="logo-title">TOWER<br><span class="gold">DEFENSE</span></h1>
+        <p class="logo-sub">Build. Upgrade. Kill.</p>
+      </div>
+      <div class="divider">
+        <div class="div-line"></div>
+        <span class="div-icon">⚔</span>
+        <div class="div-line"></div>
+      </div>
+      <div class="menu-btns">
+        <button class="btn btn-gold" onclick="goTo('level-select')">&#9654; &nbsp; Play</button>
+        <button class="btn btn-wood" onclick="openSettings()">&#9881; &nbsp; Settings</button>
+      </div>
+    </div>
+
+    <!-- LEVEL SELECT -->
+    <div class="screen hidden" id="level-select">
+      <button class="btn-back" onclick="goTo('main-menu')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Back
+      </button>
+      <div class="scroll-header">
+        <div class="nail l"></div><div class="nail r"></div>
+        <div class="scroll-inner">
+          <p class="scroll-eyebrow">Choose Your Battle</p>
+          <h2 class="scroll-title">Select Level</h2>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="lcard" onclick="selectLevel(1)">
+          <p class="lnum">LEVEL 01</p>
+          <div class="lstars"><span class="star on">&#9733;</span><span class="star on">&#9733;</span><span class="star on">&#9733;</span></div>
+          <h3 class="lname">Ember Fields</h3>
+          <p class="ldesc">A gentle introduction to the art of defense.</p>
+          <div class="lmeta"><div class="ldiff"><div class="dd on"></div><div class="dd"></div><div class="dd"></div><div class="dd"></div></div><span class="lwaves">8 waves</span></div>
+        </div>
+        <div class="lcard" onclick="selectLevel(2)">
+          <p class="lnum">LEVEL 02</p>
+          <div class="lstars"><span class="star on">&#9733;</span><span class="star on">&#9733;</span><span class="star off">&#9733;</span></div>
+          <h3 class="lname">Ashwood Pass</h3>
+          <p class="ldesc">Enemies grow bolder through the narrow pass.</p>
+          <div class="lmeta"><div class="ldiff"><div class="dd on"></div><div class="dd on"></div><div class="dd"></div><div class="dd"></div></div><span class="lwaves">12 waves</span></div>
+        </div>
+        <div class="lcard" onclick="selectLevel(3)">
+          <p class="lnum">LEVEL 03</p>
+          <div class="lstars"><span class="star on">&#9733;</span><span class="star off">&#9733;</span><span class="star off">&#9733;</span></div>
+          <h3 class="lname">Iron Gorge</h3>
+          <p class="ldesc">Armored units march without mercy.</p>
+          <div class="lmeta"><div class="ldiff"><div class="dd on"></div><div class="dd on"></div><div class="dd on"></div><div class="dd"></div></div><span class="lwaves">16 waves</span></div>
+        </div>
+        <div class="lcard locked">
+          <svg class="lock-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="3" y="7" width="10" height="8" rx="1" stroke-width="1.2"/><path d="M5 7V5a3 3 0 016 0v2" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <p class="lnum">LEVEL 04</p>
+          <div class="lstars"><span class="star off">&#9733;</span><span class="star off">&#9733;</span><span class="star off">&#9733;</span></div>
+          <h3 class="lname">Siege of Dusk</h3>
+          <p class="ldesc">Complete level 3 to unlock.</p>
+          <div class="lmeta"><div class="ldiff"><div class="dd on"></div><div class="dd on"></div><div class="dd on"></div><div class="dd on danger"></div></div><span class="lwaves">20 waves</span></div>
+        </div>
+        <div class="lcard locked">
+          <svg class="lock-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="3" y="7" width="10" height="8" rx="1" stroke-width="1.2"/><path d="M5 7V5a3 3 0 016 0v2" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <p class="lnum">LEVEL 05</p>
+          <div class="lstars"><span class="star off">&#9733;</span><span class="star off">&#9733;</span><span class="star off">&#9733;</span></div>
+          <h3 class="lname">The Last Gate</h3>
+          <p class="ldesc">One final stand against the endless horde.</p>
+          <div class="lmeta"><div class="ldiff"><div class="dd on danger"></div><div class="dd on danger"></div><div class="dd on danger"></div><div class="dd on danger"></div></div><span class="lwaves">30 waves</span></div>
+        </div>
+        <div class="lcard locked">
+          <svg class="lock-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="3" y="7" width="10" height="8" rx="1" stroke-width="1.2"/><path d="M5 7V5a3 3 0 016 0v2" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <p class="lnum">LEVEL 06</p>
+          <div class="lstars"><span class="star off">&#9733;</span><span class="star off">&#9733;</span><span class="star off">&#9733;</span></div>
+          <h3 class="lname">???</h3>
+          <p class="ldesc">Coming soon.</p>
+          <div class="lmeta"><div class="ldiff"><div class="dd"></div><div class="dd"></div><div class="dd"></div><div class="dd"></div></div><span class="lwaves">— waves</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="modal-bg" id="settings-modal" onclick="closeSettings(event)">
+      <div class="modal">
+        <h3 class="modal-title">&#9881; &nbsp;Settings</h3>
+        <div class="srow"><span class="slabel">Music</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="srow"><span class="slabel">Sound FX</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="srow"><span class="slabel">Music Vol</span><input type="range" class="slider" min="0" max="100" value="70"></div>
+        <div class="srow"><span class="slabel">FX Vol</span><input type="range" class="slider" min="0" max="100" value="85"></div>
+        <div class="srow"><span class="slabel">Fullscreen</span><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+        <button class="btn btn-gold mc" onclick="closeSettings()">Done</button>
+      </div>
+    </div>
+
+    <div class="version">v0.1.0</div>
+
+    <script>
+      const bgCanvas = document.getElementById('bg-canvas');
+      const ctx      = bgCanvas.getContext('2d');
+      function resize(){ bgCanvas.width = innerWidth; bgCanvas.height = innerHeight; }
+      resize(); window.addEventListener('resize', resize);
+
+      let T = 0;
+
+      class FireEmber {
+        constructor(init){ this.init = init; this.reset(); }
+        reset(){
+          this.x    = Math.random() * innerWidth;
+          this.y    = this.init ? Math.random() * innerHeight : innerHeight * (0.55 + Math.random() * 0.45);
+          this.size = 0.6 + Math.random() * 2.4;
+          this.vy   = -(0.15 + Math.random() * 0.6);
+          this.vx   = (Math.random() - 0.5) * 0.25;
+          this.sf   = 0.3 + Math.random() * 0.9;
+          this.sa   = 0.4 + Math.random() * 0.9;
+          this.so   = Math.random() * Math.PI * 2;
+          this.t    = this.init ? Math.random() * 300 : 0;
+          this.maxT = 200 + Math.random() * 260;
+          this.hue  = 12 + Math.random() * 30;
+          this.lit  = 58 + Math.random() * 22;
+        }
+        update(){
+          this.t++;
+          this.x += this.vx + Math.sin(this.t * 0.018 * this.sf + this.so) * this.sa;
+          this.y += this.vy;
+          this.size *= 0.9993;
+          if(this.t >= this.maxT || this.y < -8) this.reset();
+        }
+        draw(c){
+          const p = this.t / this.maxT;
+          const a = p < 0.1 ? p/0.1 : p > 0.72 ? (1-p)/0.28 : 1;
+          c.globalAlpha = a * 0.78;
+          const r = this.size * 2.8;
+          const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, r);
+          g.addColorStop(0,   `hsla(${this.hue+15}, 100%, ${this.lit+18}%, 1)`);
+          g.addColorStop(0.35,`hsla(${this.hue},    100%, ${this.lit}%,    0.8)`);
+          g.addColorStop(0.7, `hsla(${this.hue-8},   95%, 38%,             0.3)`);
+          g.addColorStop(1,   `hsla(${this.hue-8},   95%, 28%,             0)`);
+          c.beginPath(); c.arc(this.x, this.y, r, 0, Math.PI*2);
+          c.fillStyle = g; c.fill();
+          c.globalAlpha = 1;
+        }
+      }
+
+      class SmokeWisp {
+        constructor(init){ this.init = init; this.reset(); }
+        reset(){
+          this.x    = Math.random() * innerWidth;
+          this.y    = this.init ? Math.random() * innerHeight : innerHeight * (0.5 + Math.random() * 0.5);
+          this.r    = 18 + Math.random() * 38;
+          this.vx   = (Math.random() - 0.5) * 0.18;
+          this.vy   = -(0.08 + Math.random() * 0.22);
+          this.t    = this.init ? Math.random() * 400 : 0;
+          this.maxT = 320 + Math.random() * 280;
+          this.rot  = Math.random() * Math.PI * 2;
+          this.rotV = (Math.random() - 0.5) * 0.004;
+          this.gray = 55 + Math.random() * 30;
+        }
+        update(){
+          this.t++;
+          this.x  += this.vx;
+          this.y  += this.vy;
+          this.r  *= 1.0006;
+          this.rot += this.rotV;
+          if(this.t >= this.maxT || this.y < -80) this.reset();
+        }
+        draw(c){
+          const p = this.t / this.maxT;
+          const a = p < 0.12 ? p/0.12 : p > 0.65 ? (1-p)/0.35 : 1;
+          c.save();
+          c.translate(this.x, this.y);
+          c.rotate(this.rot);
+          c.globalAlpha = a * 0.11;
+          const g = c.createRadialGradient(0, 0, 0, 0, 0, this.r);
+          g.addColorStop(0,   `rgba(${this.gray+20}, ${this.gray+10}, ${this.gray-10}, 1)`);
+          g.addColorStop(0.5, `rgba(${this.gray},    ${this.gray-8},  ${this.gray-18}, 0.5)`);
+          g.addColorStop(1,   `rgba(${this.gray-10}, ${this.gray-18}, ${this.gray-22}, 0)`);
+          c.beginPath(); c.arc(0, 0, this.r, 0, Math.PI*2);
+          c.fillStyle = g; c.fill();
+          c.restore();
+          c.globalAlpha = 1;
+        }
+      }
+
+      class DustMote {
+        constructor(init){ this.init = init; this.reset(); }
+        reset(){
+          this.x    = Math.random() * innerWidth;
+          this.y    = this.init ? Math.random() * innerHeight : innerHeight * 0.3 + Math.random() * innerHeight * 0.7;
+          this.r    = 0.4 + Math.random() * 1.1;
+          this.vx   = (Math.random() - 0.5) * 0.22;
+          this.vy   = -(0.04 + Math.random() * 0.14);
+          this.sf   = 0.2 + Math.random() * 0.5;
+          this.so   = Math.random() * Math.PI * 2;
+          this.t    = this.init ? Math.random() * 500 : 0;
+          this.maxT = 400 + Math.random() * 400;
+          this.brightness = 160 + Math.random() * 80;
+        }
+        update(){
+          this.t++;
+          this.x += this.vx + Math.sin(this.t * 0.012 * this.sf + this.so) * 0.3;
+          this.y += this.vy;
+          if(this.t >= this.maxT || this.y < -5) this.reset();
+        }
+        draw(c){
+          const p = this.t / this.maxT;
+          const a = p < 0.1 ? p/0.1 : p > 0.8 ? (1-p)/0.2 : 1;
+          c.globalAlpha = a * 0.38;
+          const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r * 3);
+          const b = this.brightness;
+          g.addColorStop(0,  `rgba(${b},${b-10},${b-30}, 1)`);
+          g.addColorStop(1,  `rgba(${b},${b-10},${b-30}, 0)`);
+          c.beginPath(); c.arc(this.x, this.y, this.r * 3, 0, Math.PI*2);
+          c.fillStyle = g; c.fill();
+          c.globalAlpha = 1;
+        }
+      }
+
+      class HeatBlob {
+        constructor(init){ this.init = init; this.reset(); }
+        reset(){
+          this.x    = Math.random() * innerWidth;
+          this.y    = (0.45 + Math.random() * 0.55) * innerHeight;
+          this.r    = 6 + Math.random() * 18;
+          this.vx   = (Math.random() - 0.5) * 0.12;
+          this.vy   = -(0.06 + Math.random() * 0.18);
+          this.t    = this.init ? Math.random() * 250 : 0;
+          this.maxT = 180 + Math.random() * 200;
+          this.hue  = 22 + Math.random() * 18;
+        }
+        update(){
+          this.t++;
+          this.x += this.vx + Math.sin(this.t * 0.022) * 0.2;
+          this.y += this.vy;
+          this.r *= 1.0012;
+          if(this.t >= this.maxT || this.y < innerHeight * 0.1) this.reset();
+        }
+        draw(c){
+          const p = this.t / this.maxT;
+          const a = p < 0.15 ? p/0.15 : p > 0.6 ? (1-p)/0.4 : 1;
+          c.globalAlpha = a * 0.07;
+          const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
+          g.addColorStop(0,  `hsla(${this.hue}, 85%, 62%, 1)`);
+          g.addColorStop(1,  `hsla(${this.hue}, 85%, 55%, 0)`);
+          c.beginPath(); c.arc(this.x, this.y, this.r, 0, Math.PI*2);
+          c.fillStyle = g; c.fill();
+          c.globalAlpha = 1;
+        }
+      }
+
+      class Firefly {
+        constructor(init){ this.init = init; this.reset(); }
+        reset(){
+          this.x    = Math.random() * innerWidth;
+          this.y    = (0.2 + Math.random() * 0.65) * innerHeight;
+          this.vx   = (Math.random() - 0.5) * 0.35;
+          this.vy   = (Math.random() - 0.5) * 0.2;
+          this.t    = this.init ? Math.random() * 500 : 0;
+          this.maxT = 400 + Math.random() * 400;
+          this.blinkSpeed = 0.04 + Math.random() * 0.06;
+          this.blinkOff   = Math.random() * Math.PI * 2;
+          this.hue  = 70 + Math.random() * 50;
+          this.r    = 1.2 + Math.random() * 1.4;
+        }
+        update(){
+          this.t++;
+          this.vx += (Math.random() - 0.5) * 0.02;
+          this.vy += (Math.random() - 0.5) * 0.02;
+          this.vx  = Math.max(-0.5, Math.min(0.5, this.vx));
+          this.vy  = Math.max(-0.4, Math.min(0.4, this.vy));
+          this.x  += this.vx;
+          this.y  += this.vy;
+          if(this.x < 0) this.x = innerWidth;
+          if(this.x > innerWidth) this.x = 0;
+          if(this.y < 0 || this.y > innerHeight || this.t >= this.maxT) this.reset();
+        }
+        draw(c){
+          const p = this.t / this.maxT;
+          const lifeFade = p < 0.08 ? p/0.08 : p > 0.88 ? (1-p)/0.12 : 1;
+          const blink = (Math.sin(this.t * this.blinkSpeed + this.blinkOff) + 1) * 0.5;
+          const a = lifeFade * blink;
+          c.globalAlpha = a * 0.85;
+          const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r * 5);
+          g.addColorStop(0,   `hsla(${this.hue}, 100%, 88%, 1)`);
+          g.addColorStop(0.3, `hsla(${this.hue}, 100%, 68%, 0.7)`);
+          g.addColorStop(1,   `hsla(${this.hue}, 100%, 50%, 0)`);
+          c.beginPath(); c.arc(this.x, this.y, this.r * 5, 0, Math.PI*2);
+          c.fillStyle = g; c.fill();
+          c.globalAlpha = 1;
+        }
+      }
+
+      class WindStreak {
+        constructor(init){ this.init = init; this.reset(); }
+        reset(){
+          this.x    = this.init ? Math.random() * innerWidth : -300;
+          this.y    = Math.random() * innerHeight * 0.85;
+          this.len  = 40 + Math.random() * 120;
+          this.spd  = 1.2 + Math.random() * 2.2;
+          this.t    = 0;
+          this.maxT = Math.ceil((innerWidth + 400) / this.spd);
+          this.alpha= 0.04 + Math.random() * 0.06;
+          this.thick= 0.4 + Math.random() * 1.0;
+        }
+        update(){
+          this.t++;
+          this.x += this.spd;
+          if(this.x > innerWidth + 300) this.reset();
+        }
+        draw(c){
+          const p = this.t / this.maxT;
+          const a = p < 0.05 ? p/0.05 : p > 0.92 ? (1-p)/0.08 : 1;
+          c.globalAlpha = this.alpha * a;
+          const g = c.createLinearGradient(this.x - this.len, this.y, this.x, this.y);
+          g.addColorStop(0,   'rgba(220,200,160,0)');
+          g.addColorStop(0.5, 'rgba(220,200,160,1)');
+          g.addColorStop(1,   'rgba(220,200,160,0)');
+          c.beginPath();
+          c.moveTo(this.x - this.len, this.y);
+          c.lineTo(this.x, this.y);
+          c.strokeStyle = g;
+          c.lineWidth = this.thick;
+          c.stroke();
+          c.globalAlpha = 1;
+        }
+      }
+
+      const particles = [
+        ...Array.from({ length: 60  }, () => new FireEmber(true)),
+        ...Array.from({ length: 22  }, () => new SmokeWisp(true)),
+        ...Array.from({ length: 55  }, () => new DustMote(true)),
+        ...Array.from({ length: 18  }, () => new HeatBlob(true)),
+        ...Array.from({ length: 28  }, () => new Firefly(true)),
+        ...Array.from({ length: 20  }, () => new WindStreak(true)),
+      ];
+
+      let _uiRAF = null;
+      function loop(){
+        T += 0.016;
+        ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        particles.forEach(p => { p.update(); p.draw(ctx); });
+        _uiRAF = requestAnimationFrame(loop);
+      }
+      function stopUILoop() {
+        if (_uiRAF) { cancelAnimationFrame(_uiRAF); _uiRAF = null; }
+        ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        // Pull all menu visuals fully out of the browser's compositing pipeline
+        bgCanvas.style.display = 'none';
+        ['bg-image','bg-canvas'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        document.querySelectorAll('.vignette,.dim-overlay').forEach(el => el.style.display = 'none');
+      }
+      function startUILoop() {
+        if (_uiRAF) return;
+        // Restore all menu visuals
+        bgCanvas.style.display = '';
+        ['bg-image','bg-canvas'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = '';
+        });
+        document.querySelectorAll('.vignette,.dim-overlay').forEach(el => el.style.display = '');
+        _uiRAF = requestAnimationFrame(loop);
+      }
+      startUILoop();
+
+      function goTo(id){
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+      }
+      function openSettings()   { document.getElementById('settings-modal').classList.add('open'); }
+      function closeSettings(e) { if(!e || e.target === document.getElementById('settings-modal')) document.getElementById('settings-modal').classList.remove('open'); }
+
+      function selectLevel(n) {
+        const ui  = document.getElementById('ui-layer');
+        const ls  = document.getElementById('loading-screen');
+        const bar = document.getElementById('load-bar');
+        const txt = document.getElementById('load-text');
+        const pct = document.getElementById('load-pct');
+
+        // Reset bar
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        txt.textContent = 'Preparing...';
+        if (pct) pct.textContent = '0%';
+
+        // Fade UI out AND loading screen in simultaneously
+        ui.style.transition = 'opacity 0.5s ease';
+        ui.style.opacity = '0';
+        ls.style.transition = 'opacity 0.5s ease';
+        ls.style.opacity = '1';
+        ls.style.pointerEvents = 'all';
+        stopUILoop();
+
+        setTimeout(function() {
+          ui.style.pointerEvents = 'none';
+
+          // Animate progress bar
+          bar.style.transition = 'width 0.2s ease';
+          let prog = 0;
+          const iv = setInterval(function() {
+            prog += Math.random() * 20;
+            if (prog >= 90) { prog = 90; clearInterval(iv); }
+            const p = Math.round(prog);
+            bar.style.width = p + '%';
+            if (pct) pct.textContent = p + '%';
+            txt.textContent = p < 35 ? 'Preparing...' : p < 70 ? 'Loading assets...' : 'Almost ready...';
+          }, 150);
+
+          setTimeout(function() {
+            clearInterval(iv);
+            bar.style.width = '100%';
+            if (pct) pct.textContent = '100%';
+            txt.textContent = 'Ready!';
+
+            setTimeout(function() {
+              if (typeof window._startGame === 'function') window._startGame(n);
+
+              ls.style.transition = 'opacity 0.6s ease';
+              ls.style.opacity = '0';
+              setTimeout(function() { ls.style.pointerEvents = 'none'; }, 600);
+            }, 400);
+          }, 1400);
+        }, 500);
+      }
+
+      window.returnToMenu = function() {
+        const ui = document.getElementById('ui-layer');
+        ui.style.pointerEvents = 'all';
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){
+          ui.style.transition = 'opacity 0.7s ease';
+          ui.style.opacity = '1';
+        }); });
+        goTo('main-menu');
+        startUILoop();
+      };
+    </script>
+  </div>
+</div>
+
+<script src="js/waypoints.js"></script>
+<script src="js/mudData.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/towerWheel.js"></script>
+<script src="js/projectile.js"></script>
+<script src="js/tower.js"></script>
+<script src="js/upgradePanel.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/abilities.js"></script>
+<script src="js/abilityEffects.js"></script>
+<script src="js/mapRenderer.js"></script>
+<script src="js/game.js"></script>
+
 </body>
 </html>

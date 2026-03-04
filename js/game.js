@@ -14,14 +14,47 @@ let mouseWorld = { x: 0, y: 0 };
 const dpr      = window.devicePixelRatio || 1;
 const mapRatio = world.h / world.w;
 
+// Preload everything while UI is visible
+let _mapRenderer_preloaded = null;
+
 window.addEventListener("load", () => {
-
-  const cssW = canvas.offsetWidth;
-  const cssH = cssW * mapRatio;
-
+  const cssW = 1280;
+  const cssH = Math.round(cssW * mapRatio);
+  canvas.style.width  = cssW + "px";
   canvas.style.height = cssH + "px";
   canvas.width        = cssW * dpr;
   canvas.height       = cssH * dpr;
+  const uiLayer = document.getElementById('ui-layer');
+  if (uiLayer) uiLayer.style.height = cssH + "px";
+
+  // Preload map silently in background
+  fetch("./map.json")
+    .then(r => r.json())
+    .then(mapData => {
+      const mapRenderer = new MapRenderer(mapData, "map1");
+      mapRenderer.load("./", () => {
+        _mapRenderer_preloaded = mapRenderer;
+        console.log("Map preloaded!");
+      });
+    })
+    .catch(err => console.error("Failed to preload map:", err));
+});
+
+window._startGame = function(levelNum) {
+
+  // Force canvas to correct size
+  const cssW = 1280;
+  const cssH = Math.round(cssW * mapRatio);
+
+  canvas.style.width  = cssW + "px";
+  canvas.style.height = cssH + "px";
+  canvas.width        = cssW * dpr;
+  canvas.height       = cssH * dpr;
+
+  const uiLayer = document.getElementById('ui-layer');
+  if (uiLayer) uiLayer.style.height = cssH + "px";
+
+  console.log("_startGame called, cssW:", cssW, "cssH:", cssH);
 
   const scale   = cssW / world.w;
   const offsetX = 0;
@@ -38,7 +71,6 @@ window.addEventListener("load", () => {
     shakeMagnitude = magnitude;
   }
 
-  // Expose for abilityEffects
   window._triggerScreenShake = triggerShake;
 
   upgradePanel.canvasCSSW = cssW;
@@ -69,7 +101,7 @@ window.addEventListener("load", () => {
 
   canvas.addEventListener("click", (e) => {
     const rect    = canvas.getBoundingClientRect();
-    const clickScale = rect.width / world.w;  // use actual rendered size
+    const clickScale = rect.width / world.w;
     const wx   = (e.clientX - rect.left) / clickScale;
     const wy   = (e.clientY - rect.top)  / clickScale;
 
@@ -78,11 +110,9 @@ window.addEventListener("load", () => {
     const cssClickX = e.clientX - rect.left;
     const cssClickY = e.clientY - rect.top;
 
-    // ── Ability card click ──────────────────────────
     const cardResult = abilityManager.handleClick(cssClickX, cssClickY, cssW, cssH);
-    if (cardResult) return; // clicked a card (selected or deselected)
+    if (cardResult) return;
 
-    // ── Ability map activation ──────────────────────
     if (abilityManager.selected) {
       const activated = abilityManager.activateAt(wx, wy, hud.coins);
       if (activated) {
@@ -138,14 +168,20 @@ window.addEventListener("load", () => {
 
   loadEnemyImages(() => console.log("Enemy images loaded!"));
 
-  fetch("./map.json")
-    .then(r => r.json())
-    .then(mapData => {
-      const mapRenderer = new MapRenderer(mapData, "map1");
-      mapRenderer_ref   = mapRenderer;
-      mapRenderer.load("./", () => startGame(mapRenderer));
-    })
-    .catch(err => console.error("Failed to load map.json:", err));
+  // Use preloaded map if ready, otherwise fallback fetch
+  if (_mapRenderer_preloaded) {
+    mapRenderer_ref = _mapRenderer_preloaded;
+    startGame(mapRenderer_ref);
+  } else {
+    fetch("./map.json")
+      .then(r => r.json())
+      .then(mapData => {
+        const mapRenderer = new MapRenderer(mapData, "map1");
+        mapRenderer_ref   = mapRenderer;
+        mapRenderer.load("./", () => startGame(mapRenderer));
+      })
+      .catch(err => console.error("Failed to load map.json:", err));
+  }
 
   function startGame(mapRenderer) {
 
@@ -195,7 +231,6 @@ window.addEventListener("load", () => {
       const shakeX        = shakeAmt > 0 ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
       const shakeY        = shakeAmt > 0 ? (Math.random() - 0.5) * shakeAmt * 2 : 0;
 
-      // Apply shake to canvas CSS transform — whole canvas moves, no black edges
       canvas.style.transform = shakeAmt > 0
         ? `translate(${shakeX}px, ${shakeY}px)`
         : "";
@@ -218,16 +253,11 @@ window.addEventListener("load", () => {
 
       towerManager.draw(c);
       projectileManager.draw(c);
-      abilityEffectManager.drawScorch(c);  // scorch under enemies
+      abilityEffectManager.drawScorch(c);
 
       if (!towerWheel.visible) {
         mapRenderer.drawHover(c, mouseWorld.x, mouseWorld.y);
       }
-
-      // // ── Debug waypoints ───────────────────────────────
-      // drawDebugWaypoints(path1Waypoints, "rgba(255,255,0,0.8)");
-      // drawDebugWaypoints(path2Waypoints, "rgba(0,255,255,0.8)");
-      // drawDebugWaypoints(path3Waypoints, "rgba(255,0,255,0.8)");
 
       c.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offsetX, dpr * offsetY);
 
@@ -243,7 +273,6 @@ window.addEventListener("load", () => {
         enemies[i].update(dt);
         enemies[i].draw(c);
 
-        // Award coins and score as soon as enemy starts dying
         if (enemies[i].dying && !enemies[i]._coinAwarded) {
           enemies[i]._coinAwarded = true;
           hud.coins += 50;
@@ -258,7 +287,7 @@ window.addEventListener("load", () => {
         }
       }
 
-      abilityEffectManager.drawEffects(c); // explosion on top of enemies
+      abilityEffectManager.drawEffects(c);
 
       const liveScale = canvas.getBoundingClientRect().width / world.w;
 
@@ -266,7 +295,7 @@ window.addEventListener("load", () => {
       towerWheel.drawScreen(c, liveScale);
       hud.draw(c, cssW, cssH);
       abilityManager.draw(c, cssW, cssH);
-      drawEnemyDmgNumbers(c, liveScale);       // screen-space damage numbers
+      drawEnemyDmgNumbers(c, liveScale);
 
       if (upgradePanel.visible && upgradePanel.selectedTower) {
         upgradePanel.draw(c, upgradePanel.selectedTower, scale, dpr);
@@ -278,4 +307,4 @@ window.addEventListener("load", () => {
     requestAnimationFrame(gameLoop);
   }
 
-});
+};
