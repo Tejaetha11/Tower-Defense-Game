@@ -649,9 +649,13 @@
       function selectLevel(n) {
         const ui  = document.getElementById('ui-layer');
         const ls  = document.getElementById('loading-screen');
+        const bg  = ls.querySelector('.load-bg');
         const bar = document.getElementById('load-bar');
         const txt = document.getElementById('load-text');
         const pct = document.getElementById('load-pct');
+
+        // Set correct background image per level
+        bg.className = n === 1 ? 'load-bg' : 'load-bg level' + n;
 
         bar.style.transition = 'none';
         bar.style.width = '0%';
@@ -686,10 +690,14 @@
             txt.textContent = 'Ready!';
 
             setTimeout(function() {
-              if (typeof window._startGame === 'function') window._startGame(n);
-              ls.style.transition = 'opacity 0.6s ease';
-              ls.style.opacity = '0';
-              setTimeout(function() { ls.style.pointerEvents = 'none'; }, 600);
+              if (typeof window._startGame === 'function') {
+                window._startGame(n, function() {
+                  // Hide loading screen only after map is fully loaded
+                  ls.style.transition = 'opacity 0.6s ease';
+                  ls.style.opacity = '0';
+                  setTimeout(function() { ls.style.pointerEvents = 'none'; }, 600);
+                });
+              }
             }, 400);
           }, 1400);
         }, 500);
@@ -739,10 +747,12 @@
             if (pct) pct.textContent = '100%';
             txt.textContent = 'Ready!';
             setTimeout(function() {
-              window._startGame(n);
-              ls.style.transition = 'opacity 0.6s ease';
-              ls.style.opacity = '0';
-              setTimeout(function() { ls.style.pointerEvents = 'none'; }, 600);
+              window._startGame(n, function() {
+                // Hide loading screen only after map is fully loaded
+                ls.style.transition = 'opacity 0.6s ease';
+                ls.style.opacity = '0';
+                setTimeout(function() { ls.style.pointerEvents = 'none'; }, 600);
+              });
             }, 400);
           }, 1400);
         }, 300);
