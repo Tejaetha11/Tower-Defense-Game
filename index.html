@@ -172,6 +172,10 @@
   }
   #loading-screen .load-bg.level2 { background-image: url('loading screen 2.png'); }
   #loading-screen .load-bg.level3 { background-image: url('loading screen 2.png'); }
+  /* Preload hidden divs so browser caches all bg images immediately */
+  #preload-imgs { position:fixed; width:1px; height:1px; opacity:0; pointer-events:none; overflow:hidden; }
+  #preload-imgs .p1 { background-image: url('loading screen.jpg'); }
+  #preload-imgs .p2 { background-image: url('loading screen 2.png'); }
   .load-bar-outer {
     position: relative; z-index: 2;
     width: 320px;
@@ -226,6 +230,12 @@
 </style>
 </head>
 <body>
+
+<!-- Preload loading screen backgrounds -->
+<div id="preload-imgs" aria-hidden="true">
+  <div class="p1"></div>
+  <div class="p2"></div>
+</div>
 
 <div id="canvas-wrap">
   <canvas id="game"></canvas>
@@ -646,6 +656,14 @@
       window.renderStars = renderStars;
       renderStars();
 
+      // Preload all loading screen images so they're ready instantly on deployed servers
+      (function() {
+        ['loading screen.jpg', 'loading screen 2.png'].forEach(function(src) {
+          var img = new Image();
+          img.src = src;
+        });
+      })();
+
       function selectLevel(n) {
         const ui  = document.getElementById('ui-layer');
         const ls  = document.getElementById('loading-screen');
@@ -718,7 +736,7 @@
         const pct = document.getElementById('load-pct');
 
         // Swap background image for level 2 and 3
-        bg.className = 'load-bg' + (n >= 2 ? ' level' + n : '');
+        bg.className = n === 1 ? 'load-bg' : 'load-bg level' + n;
 
         bar.style.transition = 'none';
         bar.style.width = '0%';
