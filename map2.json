@@ -1,0 +1,404 @@
+{ "compressionlevel":-1,
+ "height":10,
+ "infinite":false,
+ "layers":[
+        {
+         "data":[53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
+            53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53],
+         "height":10,
+         "id":8,
+         "name":"Background1",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":19,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 2147483693, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 2147483692, 2147483689, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 2147483692, 2147483689, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 2147483690, 2147483694, 2147483691, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 2147483690, 2147483694, 2147483694, 2147483689, 0, 0, 2147483693, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            2147483694, 46, 2147483696, 2147483694, 2147483694, 2147483696, 46, 46, 2147483696, 2147483694, 42, 2147483690, 2147483694, 2147483689, 2147483690, 2147483694, 2147483689, 0, 0,
+            0, 0, 2147483692, 2147483695, 2147483695, 2147483691, 0, 0, 2147483693, 0, 43, 44, 0, 2147483692, 2147483691, 0, 3221225514, 2147483694, 2147483694,
+            0, 0, 0, 2147483693, 2147483693, 0, 0, 0, 2147483692, 0, 0, 0, 2147483694, 42, 0, 0, 0, 0, 0,
+            0, 0, 0, 2147483693, 2147483693, 0, 0, 0, 0, 0, 0, 0, 0, 45, 0, 0, 0, 0, 0,
+            0, 0, 0, 2147483693, 2147483693, 0, 0, 0, 0, 0, 0, 0, 0, 45, 0, 0, 0, 0, 0],
+         "height":10,
+         "id":14,
+         "name":"path",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":19,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "data":[56, 57, 58, 0, 0, 0, 0, 0, 0, 0, 0, 55, 0, 79, 80, 81, 55, 66, 67,
+            59, 60, 76, 77, 78, 0, 0, 0, 0, 0, 0, 0, 84, 0, 0, 73, 0, 83, 0,
+            0, 0, 79, 80, 55, 0, 0, 0, 0, 0, 0, 74, 0, 55, 83, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 0, 0, 0, 74, 82, 55,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 75, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 72, 83, 0, 46, 46, 46, 0, 0, 0, 0, 75, 0, 0,
+            0, 0, 0, 0, 0, 0, 84, 55, 0, 0, 0, 0, 0, 0, 0, 0, 83, 0, 73,
+            68, 69, 0, 0, 0, 62, 63, 73, 82, 0, 0, 0, 0, 0, 0, 77, 78, 55, 70],
+         "height":10,
+         "id":15,
+         "name":"obj1",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":19,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "data":[0, 0, 0, 73, 0, 0, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 82,
+            74, 83, 62, 63, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            82, 0, 64, 65, 0, 82, 0, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 72, 0, 0, 0, 0, 75, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            73, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            82, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 62, 63, 0, 0,
+            0, 82, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 64, 65, 75, 83],
+         "height":10,
+         "id":16,
+         "name":"obj2",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":19,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 54, 0, 0, 0, 0, 54, 0, 0, 54, 0, 0, 54, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 54, 0,
+            54, 0, 0, 0, 0, 0, 0, 54, 0, 54, 0, 0, 54, 0, 0, 54, 0, 0, 0,
+            0, 0, 0, 0, 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 54,
+            0, 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 0, 0, 0],
+         "height":10,
+         "id":17,
+         "name":"placement tiles",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":19,
+         "x":0,
+         "y":0
+        }],
+ "nextlayerid":19,
+ "nextobjectid":1,
+ "orientation":"orthogonal",
+ "renderorder":"right-down",
+ "tiledversion":"1.11.2",
+ "tileheight":256,
+ "tilesets":[
+        {
+         "columns":0,
+         "firstgid":1,
+         "grid":
+            {
+             "height":1,
+             "orientation":"orthogonal",
+             "width":1
+            },
+   "margin": 0,
+   "name": "tail",
+   "spacing": 0,
+   "tilecount": 44,
+   "tileheight": 256,
+   "tiles": [
+    {
+     "id": 40,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/1.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 41,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/2.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 42,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/3.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 43,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/4.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 44,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/5.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 45,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/6.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 46,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/7.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 47,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/8.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 48,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/9.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 49,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/10.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 50,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/11.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 51,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/12.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 52,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/13.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 53,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/14.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 54,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/15.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 55,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/16.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 56,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/17.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 57,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/18.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 58,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/19.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 59,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/20.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 60,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/21.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 61,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/22.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 62,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/23.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 63,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/24.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 64,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/25.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 65,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/26.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 66,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/27.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 67,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/28.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 68,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/29.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 69,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/30.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 70,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/31.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 71,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/32.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 72,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/33.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 73,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/34.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 74,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/35.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 75,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/36.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 76,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/37.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 77,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/38.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 78,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/39.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 79,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/40.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 80,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/41.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 81,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/42.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 82,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/43.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    },
+    {
+     "id": 83,
+     "image": "TD enemies/craftpix-net-305231-free-tower-defense-2d-vector-tileset/TAILS/PNG/tail_2/44.png",
+     "imageheight": 256,
+     "imagewidth": 256
+    }
+   ],
+   "tilewidth": 256
+  }
+ ],
+ "tilewidth": 256,
+ "type": "map",
+ "version": "1.10",
+ "width": 19
+}
