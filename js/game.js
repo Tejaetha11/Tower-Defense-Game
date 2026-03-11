@@ -125,7 +125,7 @@ window.addEventListener("load", () => {
     .catch(err => console.error("Failed to preload map:", err));
 });
 
-window._startGame = function(levelNum) {
+window._startGame = function(levelNum, onReady) {
 
   // ── Clear global stale state immediately on new game ──
   // (towerManager & projectileManager are local — recreated fresh below)
@@ -346,7 +346,7 @@ window._startGame = function(levelNum) {
   if (_mapRenderer_preloaded && levelNum === 1) {
     mapRenderer_ref = _mapRenderer_preloaded;
     mapRenderer_ref._levelNum = levelNum;
-    startGame(mapRenderer_ref);
+    startGame(mapRenderer_ref, onReady);
   } else {
     fetch(levelCfg.mapFile)
       .then(r => r.json())
@@ -354,7 +354,7 @@ window._startGame = function(levelNum) {
         const mapRenderer = new MapRenderer(mapData, levelCfg.mudKey);
         mapRenderer_ref   = mapRenderer;
         mapRenderer._levelNum = levelNum;
-        mapRenderer.load("./", () => startGame(mapRenderer));
+        mapRenderer.load("./", () => startGame(mapRenderer, onReady));
       })
       .catch(err => console.error("Failed to load map.json:", err));
   }
@@ -379,7 +379,7 @@ window._startGame = function(levelNum) {
   canvas.addEventListener('click', canvas._handlers.pauseClick);
   // ────────────────────────────────────────────────────────
 
-  function startGame(mapRenderer) {
+  function startGame(mapRenderer, onReady) {
 
     let lastTime = null;
     let _rafId   = null; // track so we can cancel on restart
@@ -563,6 +563,9 @@ window._startGame = function(levelNum) {
 
       _rafId = requestAnimationFrame(gameLoop);
     }
+
+    // Notify loading screen map is ready — it will fade out now
+    if (typeof onReady === 'function') onReady();
 
     _rafId = requestAnimationFrame(gameLoop);
   }
